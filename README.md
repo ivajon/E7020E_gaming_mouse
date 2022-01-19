@@ -1,16 +1,29 @@
-# [Name of your project here]
+# Awesom gaming mouse
 
 ## Members
 
-- [name]
-- [student-email]
+- Erik Serrander
+- eriser-8@student.ltu.se
   
-- [name]
-- [student-email]
+- Ivar Jönsson
+- ivajns-9@student.ltu.se
 
 ## High level specification
 
-[Description of capabilities]
+### Basic
+- Left and right click
+- relative position
+
+### Higher
+- scrool wheel
+- Rumble motor
+- Perfect spray
+- macro system
+- Side buttons
+
+### Implementation
+- Unit testing
+- Cuntinuous integration
 
 ## Grading
 
