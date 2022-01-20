@@ -15,13 +15,13 @@
 - relative position
 
 ### Higher
-- scrool wheel
+- scroll wheel
 - macro system
 - Side buttons
 
 ### Stretch
 - Computer communication
-- Leds
+- Leds, i.e. debug/ui
 - Rumble motor
 - Perfect spray
 
