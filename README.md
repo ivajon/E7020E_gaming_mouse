@@ -21,7 +21,7 @@
 
 ### Stretch
 - Computer communication
-- Leds, i.e. debug/ui
+- LEDs, i.e. debug/ui
 - Rumble motor
 - Perfect spray
 
