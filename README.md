@@ -1,4 +1,4 @@
-# Awesom gaming mouse
+# Awesome gaming mouse
 
 ## Members
 
@@ -16,10 +16,15 @@
 
 ### Higher
 - scrool wheel
-- Rumble motor
-- Perfect spray
 - macro system
 - Side buttons
+
+### Stretch
+- Computer communication
+- Leds
+- Rumble motor
+- Perfect spray
+
 
 ### Implementation
 - Unit testing
@@ -27,10 +32,18 @@
 
 ## Grading
 
-- [Name]
+- Erik Serrander
   - Expected contributions towards grade 4
+    - side buttons
+    - diods
   - Expected contributions towards grade 5
+    - Computer communication
+    - Rumble motor
   
-- [Name]
+- Ivar Jönsson
   - Expected contributions towards grade 4
+    - Mouse wheel
+    - diods
   - Expected contributions towards grade 5
+    - Computer communication
+    - Perfect spray
