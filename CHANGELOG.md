@@ -1,4 +1,4 @@
 # Changelog
 
-## 2022-01-20 Initial high level design
-- The initial high level design was made.
+## 2022-01-20 Initial high level specification
+- The initial high level specification was made.
