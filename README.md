@@ -36,7 +36,7 @@
 ## Specification
 ---
 ### Mouse buttons
-The buttons used are D2F-01F since these are well regarded by users.
+The buttons used are [D2F-01F](https://www.elfa.se/sv/mikrobrytare-d2f-100ma-1co-74n-kolv-omron-electronic-components-d2f-01f/p/11082662?track=true&no-cache=true&marketingPopup=false) since these are well regarded by users.
 We have decided to have 4 main buttons on the mouse, 2 on the front and 2 on the side.
 
 
@@ -45,14 +45,16 @@ We have decided to have 4 main buttons on the mouse, 2 on the front and 2 on the
 
 To reduce the bouncing of the buttons a 10u capacitor is places to ground from the signal trace. This will allow the signal to be pulled low for high frequencies. 
 
-To step down the voltage a nfet transistor is used to drive a 3v3 load from the 5v source. This allows the micro controller to read the signal directly.
+To step down the voltage a [nfet](https://se.rs-online.com/web/p/mosfets/7258326) transistor is used to drive a 3v3 load from the 5v source. This allows the micro controller to read the signal directly.
 
 To drive the buttons a 5v voltage is used with a series resistor of 4.7 k to limit the current to close to 1mA. The mosfet used to limit the output acts as a decoupler thus not draining anny current ( in theory ).
 
 ### Mouse wheel
+
+
 ![mouse_wheel](images/mouse_wheel.png)
 
-The mouse wheel is also debounced using the same capacitor values as the mouse button. This should not be as needed but better safe than sorry.
+The [mouse wheel](https://se.rs-online.com/web/p/mechanical-rotary-encoders/7295545) is also debounced using the same capacitor values as the mouse button. This should not be as needed but better safe than sorry.
 
 The mouse wheel also uses the same nfet to step down the voltage.
 
