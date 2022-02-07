@@ -379,11 +379,11 @@
   "pcbnew": {
     "last_paths": {
       "gencad": "schematics_and_pcb.cad",
-      "idf": "",
+      "idf": "schematics_and_pcb.emn",
       "netlist": "",
       "specctra_dsn": "",
       "step": "schematics_and_pcb.step",
-      "vrml": ""
+      "vrml": "schematics_and_pcb.wrl"
     },
     "page_layout_descr_file": ""
   },

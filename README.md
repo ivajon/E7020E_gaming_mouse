@@ -70,15 +70,26 @@ Since RGB makes electronics better we include an array of multiplexed rgb leds. 
 - Erik Serrander
   - Expected contributions towards grade 4
     - side buttons
-    - diods
+    - diodes
   - Expected contributions towards grade 5
     - Computer communication
     - Rumble motor
   
 - Ivar Jönsson
   - Expected contributions towards grade 4
+    - PCB layout
+      - Itterative design using a 3d printer to validate pcb fitting and footprint layout
+      - Optimizing signal traces
+      - Ease of assembly
+    - Case customization 
+      - Mountingholes and posibility to use a usb cable
     - Mouse wheel
-    - diods
+      - Selecting a rotary encoder
+    - diodes
+      - status LEDs to validate voltage sections
   - Expected contributions towards grade 5
     - Computer communication
+    - LED multiplexing
+      - A multiplexd LED array that allows displaying general purpose data such as player hp and other relevant things.
     - Perfect spray
+      - This might not be applicable. 
