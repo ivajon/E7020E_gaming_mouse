@@ -33,7 +33,7 @@
 
 
 
-## Specification
+## Specification9
 ---
 ## Mouse buttons
 The buttons used are [D2F-01F](https://www.elfa.se/sv/mikrobrytare-d2f-100ma-1co-74n-kolv-omron-electronic-components-d2f-01f/p/11082662?track=true&no-cache=true&marketingPopup=false) since these are well regarded by users.
@@ -72,7 +72,7 @@ We will base our case on this moddel of the [g305](https://www.thingiverse.com/t
 with this [base](https://www.thingiverse.com/thing:3564894).
 
 
-The stl files can be found in our [models folder](models/).
+The stl files can be found in our [models folder](model/).
 
 
 ## Grading
