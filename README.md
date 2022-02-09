@@ -8,6 +8,7 @@
 - Ivar Jönsson
 - ivajns-9@student.ltu.se
 
+![main schematic](images/main_schematic.png)
 
 ## High level specification
 
