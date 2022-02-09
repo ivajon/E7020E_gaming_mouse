@@ -35,21 +35,21 @@
 
 ## Specification
 ---
-### Mouse buttons
+## Mouse buttons
 The buttons used are [D2F-01F](https://www.elfa.se/sv/mikrobrytare-d2f-100ma-1co-74n-kolv-omron-electronic-components-d2f-01f/p/11082662?track=true&no-cache=true&marketingPopup=false) since these are well regarded by users.
 We have decided to have 4 main buttons on the mouse, 2 on the front and 2 on the side.
-
-
-![front_buttons](images/front_buttons.png)
+## Side buttons 
 ![side_buttons](images/side_buttons.png)
+![side_pcb](images/side_button_board.png)
+![side_pcb](images/side_button_board_back.png)
 
 To reduce the bouncing of the buttons a 10u capacitor is places to ground from the signal trace. This will allow the signal to be pulled low for high frequencies. 
 
-To step down the voltage a [nfet](https://se.rs-online.com/web/p/mosfets/7258326) transistor is used to drive a 3v3 load from the 5v source. This allows the micro controller to read the signal directly.
-
 To drive the buttons a 5v voltage is used with a series resistor of 4.7 k to limit the current to close to 1mA. The mosfet used to limit the output acts as a decoupler thus not draining anny current ( in theory ).
 
-### Mouse wheel
+## Front buttons
+![front_buttons](images/front_buttons.png)
+## Mouse wheel
 
 
 ![mouse_wheel](images/mouse_wheel.png)
@@ -58,11 +58,21 @@ The [mouse wheel](https://se.rs-online.com/web/p/mechanical-rotary-encoders/7295
 
 The mouse wheel also uses the same nfet to step down the voltage.
 
-### RGB
-Since RGB makes electronics better we include an array of multiplexed rgb leds. This will allow us to display everything from cool animations to debug info. 
+
+## Rumble motor
+![Rumble motor image](images/rumble_motor.png)
 
 
+## Main board
+![main board](images/mainboard_front.jpg)
+![main board back](images/mainboard_back.jpg)
 
+## Case 
+We will base our case on this moddel of the [g305](https://www.thingiverse.com/thing:3969266)
+with this [base](https://www.thingiverse.com/thing:3564894).
+
+
+The stl files can be found in our [models folder](models/).
 
 
 ## Grading
@@ -79,7 +89,6 @@ Since RGB makes electronics better we include an array of multiplexed rgb leds. 
   - Expected contributions towards grade 4
     - PCB layout
       - Itterative design using a 3d printer to validate pcb fitting and footprint layout
-      - Optimizing signal traces
       - Ease of assembly
     - Case customization 
       - Mountingholes and posibility to use a usb cable
@@ -89,7 +98,6 @@ Since RGB makes electronics better we include an array of multiplexed rgb leds. 
       - status LEDs to validate voltage sections
   - Expected contributions towards grade 5
     - Computer communication
-    - LED multiplexing
-      - A multiplexd LED array that allows displaying general purpose data such as player hp and other relevant things.
+    - DPI configuration
     - Perfect spray
       - This might not be applicable. 
