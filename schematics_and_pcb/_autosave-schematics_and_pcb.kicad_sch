@@ -4324,7 +4324,7 @@
     (in_bom yes) (on_board yes)
     (uuid 99d62c77-db75-4888-85e2-73a6b151a621)
     (property "Reference" "J1" (id 0) (at 32.385 142.24 0))
-    (property "Value" "RND 205-00623 " (id 1) (at 26.67 144.78 0))
+    (property "Value" "RND 205-00624" (id 1) (at 26.67 144.78 0))
     (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" (id 2) (at 31.75 149.86 0)
       (effects (font (size 1.27 1.27)) hide)
     )
@@ -5407,7 +5407,7 @@
       (reference "D5") (unit 1) (value "S1A") (footprint "Diode_SMD:D_SMA_Handsoldering")
     )
     (path "/99d62c77-db75-4888-85e2-73a6b151a621"
-      (reference "J1") (unit 1) (value "RND 205-00623 ") (footprint "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical")
+      (reference "J1") (unit 1) (value "RND 205-00624") (footprint "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical")
     )
     (path "/5f79ca16-1b5e-47ab-90c2-75b897302cd0"
       (reference "J2") (unit 1) (value "RND 205-00627") (footprint "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical")
