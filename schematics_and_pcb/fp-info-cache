@@ -1,4 +1,4 @@
-19823545120206159
+19828478444320114
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -84497,6 +84497,13 @@ Integrated Circuit
 5
 5
 mouse
+LFXTAL055951
+
+
+0
+4
+4
+mouse
 PMW3389DM-T3QU
 
 
@@ -84510,3 +84517,17 @@ RND_135-00249
 0
 6
 6
+mouse
+USB_2.45
+
+
+0
+4
+4
+mouse
+evqP0E07
+
+
+0
+2
+2
