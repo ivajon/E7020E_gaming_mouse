@@ -107,7 +107,7 @@ Item,Qty,Reference(s),Value,LibPart,Footprint,Datasheet,Description,Height,Manuf
 11,1,D5,SS16HE,Diode:1N4001,mouse:SOD-323HE,http://www.vishay.com/docs/88503/1n4001.pdf,,,,,8.7799999999999994,4.3899999999999997,SS16HE,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,,0,0,https://www.elfa.se/en/schottky-diode-1a-60v-sod-323he-onsemi-ss16he/p/30230979?queryFromSuggest=true
 12,1,enc1,EC10E1220505,mouse:EC10E1220505,mouse:EC10E1220505,https://tech.alpsalpine.com/prod/e/html/encoder/incremental/ec10e/ec10e1220505.html,10mm Size Hollow Shaft Type EC10E Incremental Encoder,10.6,ALPS Electric,EC10E1220505,16.420000000000002,8.2100000000000009,EC10E1220505,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,10,8,65.680000000000007,https://se.farnell.com/alps/ec10e1220505/encoder-horiz-10mm-24det-12ppr/dp/2064974
 13,1,gnd1,GND_TEST,Connector:TestPoint,Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
-14,1,J1,RND 205-00624,Connector:Conn_01x03_Male,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,~,,,,,1.0693999999999999,0.53469999999999995,RND 205-00624,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,50,48,25.665599999999998,https://www.elfa.se/en/straight-male-pcb-header-through-hole-rows-contacts-54mm-pitch-rnd-connect-rnd-205-00624/p/30093644?track=true&no-cache=true&marketingPopup=false
+14,1,J1,RND 205-00624,Connector:Conn_01x03_Male,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,~,,,,,1.0693999999999999,0.53469999999999995,RND 205-00624,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,50,48,25.665599999999998,
 15,1,J2,RND 205-00627,Connector:Conn_01x06_Male,Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical,~,,,,,2.1000000000000001,1.05,RND 205-00627,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,25,23,24.150000000000002,
 16,1,J3,Motor con,Connector:Conn_01x02_Male,Connector_PinSocket_2.54mm:PinSocket_1x02_P2.54mm_Vertical,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 17,2,"J4, J5",Conn_01x04_Male,Connector:Conn_01x04_Male,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
@@ -117,7 +117,7 @@ Item,Qty,Reference(s),Value,LibPart,Footprint,Datasheet,Description,Height,Manuf
 21,1,PH1,PH0_TEST,Connector:TestPoint,Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 22,1,PH2,PH1_TEST,Connector:TestPoint,Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 23,1,Q1,TSM2308CX RFG,Device:Q_NMOS_GSD,Package_TO_SOT_SMD:SOT-23,~,,,,,10.42,5.21,TSM2308CX RFG,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,3,1,5.21,https://www.elfa.se/en/mosfet-single-channel-60v-3a-25w-sot-23-taiwan-semiconductor-tsm2308cx-rfg/p/30139432?track=true&no-cache=true&marketingPopup=false
-24,1,R1,15,Device:R_Small,Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,https://www.elfa.se/en/high-power-thick-film-smd-resistor-0805-13ohm-330mw-rnd-components-rnd-155hp05w3f130jt5e/p/30111773?track=true&no-cache=true&marketingPopup=false
+24,1,R1,13,Device:R_Small,Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,~,,,,,0.51659999999999995,0.25829999999999997,RND 155HP05W3F130JT5E,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,250,248,64.058399999999992,https://www.elfa.se/en/high-power-thick-film-smd-resistor-0805-13ohm-330mw-rnd-components-rnd-155hp05w3f130jt5e/p/30111773?track=true&no-cache=true&marketingPopup=false
 25,7,"R2, R9, R14, R15, R18, R19, R5",10k,Device:R_Small,Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,~,,,,,8.2627999999999986,0.59019999999999995,RT0805FRE0710KL,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,100,86,50.757199999999997,https://www.elfa.se/en/smd-resistor-125mw-10kohm-0805-yageo-rt0805fre0710kl/p/30214077?track=true&no-cache=true&marketingPopup=false
 26,2,"R3, R10",1k,Device:R_Small,Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 27,5,"R4, R6, R7, R11, R12",4.7k,Device:R_Small,Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
@@ -134,11 +134,11 @@ Item,Qty,Reference(s),Value,LibPart,Footprint,Datasheet,Description,Height,Manuf
 39,1,U6,9DB403DGLFT,mouse:TSSOP28,mouse:TSSOP-24,,,,,,0,,,,,0,0,
 40,6,"U7, U8, U9, U10, U11, U12",RND 135-00249,mouse:RND 135-00249,mouse:RND_135-00249,,,,,,15.720000000000001,1.3100000000000001,RND 135-00249,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,50,38,49.780000000000001,https://www.elfa.se/en/rgb-smd-led-0606-468nm-520nm-632nm-rnd-components-rnd-135-00249/p/30158844?track=true&no-cache=true&marketingPopup=false
 ,,,,,,,,,,,,,,,,,,
-price per mouse if comon order,276.50420000000003,,,,,,,,,,,,,,,,,
-Price per mouse if not,700.56500000000005,,,,,,,,,,,,,,,,,
+price per mouse if comon order,277.02080000000007,,,,,,,,,,,,,,,,,
+Price per mouse if not,765.1400000000001,,,,,,,,,,,,,,,,,
 price pcb,160,,,,,,,,,,,,,,,,,
 
 
 
 Total price if comon order,Total price if not,,,,,,,,,,,,,,,,,
-436.50420000000003,860.56500000000005,,,,,,,,,,,,,,,,,
+437.02080000000007,925.1400000000001,,,,,,,,,,,,,,,,,
