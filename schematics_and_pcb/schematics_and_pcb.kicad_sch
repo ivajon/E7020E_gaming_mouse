@@ -2062,7 +2062,6 @@
     )
   )
 
-
   (junction (at 92.71 237.49) (diameter 0) (color 0 0 0 0)
     (uuid 02fa5edd-dc68-447c-ad55-c15d74babe10)
   )
@@ -4206,7 +4205,7 @@
     (in_bom yes) (on_board yes)
     (uuid 14d53526-2ffb-4d05-8740-bfc9da25797b)
     (property "Reference" "R17" (id 0) (at 361.95 179.07 90))
-    (property "Value" "8.2" (id 1) (at 358.14 179.07 90))
+    (property "Value" "22" (id 1) (at 358.14 179.07 90))
     (property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder" (id 2) (at 358.14 176.53 0)
       (effects (font (size 1.27 1.27)) hide)
     )
@@ -5398,7 +5397,7 @@
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid 792a157e-cb19-4864-93f9-71633a825461)
     (property "Reference" "R13" (id 0) (at 358.14 165.1 90))
-    (property "Value" "680m" (id 1) (at 358.14 167.64 90))
+    (property "Value" "2.2" (id 1) (at 358.14 167.64 90))
     (property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder" (id 2) (at 358.14 171.45 0)
       (effects (font (size 1.27 1.27)) hide)
     )
@@ -5933,7 +5932,7 @@
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid a2ee253e-ed9e-42e6-96e3-d788a584d3c0)
     (property "Reference" "U6" (id 0) (at 302.895 156.21 0))
-    (property "Value" "9DB403DGLFT" (id 1) (at 302.895 158.75 0))
+    (property "Value" "PCA9624" (id 1) (at 302.895 158.75 0))
     (property "Footprint" "mouse:TSSOP-24" (id 2) (at 297.18 158.75 0)
       (effects (font (size 1.27 1.27)) hide)
     )
@@ -6479,7 +6478,7 @@
     (in_bom yes) (on_board yes)
     (uuid ce63bba4-4792-49bb-991f-eed6095c7f6a)
     (property "Reference" "R16" (id 0) (at 354.33 173.99 90))
-    (property "Value" "680m" (id 1) (at 361.95 173.99 90))
+    (property "Value" "2.2" (id 1) (at 361.95 173.99 90))
     (property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder" (id 2) (at 358.14 173.99 0)
       (effects (font (size 1.27 1.27)) hide)
     )
@@ -7349,7 +7348,7 @@
       (reference "R12") (unit 1) (value "4.7k") (footprint "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder")
     )
     (path "/792a157e-cb19-4864-93f9-71633a825461"
-      (reference "R13") (unit 1) (value "680m") (footprint "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder")
+      (reference "R13") (unit 1) (value "2.2") (footprint "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder")
     )
     (path "/2a4d6102-d0e4-47d6-81b6-8da78f401505"
       (reference "R14") (unit 1) (value "10k") (footprint "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder")
@@ -7358,10 +7357,10 @@
       (reference "R15") (unit 1) (value "10k") (footprint "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder")
     )
     (path "/ce63bba4-4792-49bb-991f-eed6095c7f6a"
-      (reference "R16") (unit 1) (value "680m") (footprint "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder")
+      (reference "R16") (unit 1) (value "2.2") (footprint "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder")
     )
     (path "/14d53526-2ffb-4d05-8740-bfc9da25797b"
-      (reference "R17") (unit 1) (value "8.2") (footprint "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder")
+      (reference "R17") (unit 1) (value "22") (footprint "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder")
     )
     (path "/d66de268-e697-4036-b690-c8e2d2ae5ff7"
       (reference "R18") (unit 1) (value "10k") (footprint "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder")
@@ -7394,7 +7393,7 @@
       (reference "U5") (unit 1) (value "LFXTAL055951") (footprint "mouse:LFXTAL055951")
     )
     (path "/a2ee253e-ed9e-42e6-96e3-d788a584d3c0"
-      (reference "U6") (unit 1) (value "9DB403DGLFT") (footprint "mouse:TSSOP-24")
+      (reference "U6") (unit 1) (value "PCA9624") (footprint "mouse:TSSOP-24")
     )
     (path "/0e677c85-3782-4cac-898b-a79bb3ec6e2d"
       (reference "U7") (unit 1) (value "RND 135-00249") (footprint "mouse:RND_135-00249")

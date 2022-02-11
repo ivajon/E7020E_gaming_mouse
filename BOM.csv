@@ -90,8 +90,8 @@ Item,Qty,Reference(s),Value,LibPart,Footprint,Datasheet,Description,Height,Manuf
 ,,U11,RND 135-00249,mouse:RND 135-00249,mouse:RND_135-00249,,,,,,,,
 ,,U12,RND 135-00249,mouse:RND 135-00249,mouse:RND_135-00249,,,,,,,,
 ,,,,,,,,,,,,,
-,,,,,,,,,,,,,
-,,,,,,,,,,,,,
+Replacing all the pinheaders with one of these,,,,,,,,,,,,,
+https://www.elfa.se/en/ss-straight-male-pcb-header-through-hole-rows-36-contacts-54mm-pitch-prostar-ss-1x36-t1-3mm/p/14370219?q=&pos=1&origPos=36&origPageSize=50&track=true,,,,,,,,,,,,,
 Collated Components:,,,,,,,,,,,,,
 ,,,,,,,,,,,,,
 Item,Qty,Reference(s),Value,LibPart,Footprint,Datasheet,Description,Height,Manufacturer_Name,Manufacturer_Part_Number,extended price,price,part #,in stock,min order,diff to max order,price at max,link
@@ -100,15 +100,15 @@ Item,Qty,Reference(s),Value,LibPart,Footprint,Datasheet,Description,Height,Manuf
 3,1,3v1,3v3_TEST,Connector:TestPoint,Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 4,1,5v1,5v_TEST,Connector:TestPoint,Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 5,4,"BACK_SIDE1, FRONT_SIDE1, LEFT_BUTTON1, RIGHT_BUTTON1",D2F-01F,mouse:D2F-01F,mouse:D2F-01F,,,,,,82.400000000000006,10.300000000000001,D2F-01F,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,3,0,0,https://www.elfa.se/en/micro-switch-d2f-100ma-1co-74n-plunger-omron-electronic-components-d2f-01f/p/11082662?track=true&no-cache=true&marketingPopup=false
-6,13,"C1, C4, C7, C8, C9, C23, C12, C13, C14, C15, C16, C17, C18",4u7,Device:C_Small,Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder,~,,,,,12.459200000000001,0.47920000000000001,RND 1500805X475K100N3,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,100,74,35.460799999999999,https://www.elfa.se/en/ceramic-capacitor-7uf-10vdc-0805-10-rnd-components-rnd-1500805x475k100n3/p/30086827?track=true&no-cache=true&marketingPopup=false
+6,13,"C1, C4, C7, C8, C9, C23, C12, C13, C14, C15, C16, C17, C18",4u7,Device:C_Small,Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder,~,,,,,24.310000000000002,0.93500000000000005,CL21A475KAQNNNE,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,5,0,0,https://se.farnell.com/samsung-electro-mechanics/cl21a475kaqnnne/cap-4-7uf-25v-mlcc-0805/dp/3013462
 7,8,"C2, C3, C6, C19, C20, C21, C22, C24",10u,Device:C_Small,Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder,~,,,,,29.120000000000001,1.8200000000000001,CC0805KKX5R6BB106,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,50,34,61.880000000000003,
 8,1,C5,100n,Device:C_Small,Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
-9,2,"C10, C11",18p,Device:C_Small,Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder,~,,,,,0.58479999999999999,0.1462,RND 1500805N180J500NT,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,100,96,14.0352,https://www.elfa.se/en/rgb-smd-led-0606-468nm-520nm-632nm-rnd-components-rnd-135-00249/p/30158844?track=true&no-cache=true&marketingPopup=false
+9,2,"C10, C11",18p,Device:C_Small,Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder,~,,,,,1.8200000000000001,0.45500000000000002,C0805C180J5GACTU,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,10,6,2.73,https://se.rs-online.com/web/p/mlccs-multilayer-ceramic-capacitors/6480935
 11,1,D5,SS16HE,Diode:1N4001,mouse:SOD-323HE,http://www.vishay.com/docs/88503/1n4001.pdf,,,,,8.7799999999999994,4.3899999999999997,SS16HE,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,,0,0,https://www.elfa.se/en/schottky-diode-1a-60v-sod-323he-onsemi-ss16he/p/30230979?queryFromSuggest=true
 12,1,enc1,EC10E1220505,mouse:EC10E1220505,mouse:EC10E1220505,https://tech.alpsalpine.com/prod/e/html/encoder/incremental/ec10e/ec10e1220505.html,10mm Size Hollow Shaft Type EC10E Incremental Encoder,10.6,ALPS Electric,EC10E1220505,16.420000000000002,8.2100000000000009,EC10E1220505,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,10,8,65.680000000000007,https://se.farnell.com/alps/ec10e1220505/encoder-horiz-10mm-24det-12ppr/dp/2064974
 13,1,gnd1,GND_TEST,Connector:TestPoint,Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
-14,1,J1,RND 205-00624,Connector:Conn_01x03_Male,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,~,,,,,1.0693999999999999,0.53469999999999995,RND 205-00624,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,50,48,25.665599999999998,https://www.elfa.se/en/straight-male-pcb-header-through-hole-rows-contacts-54mm-pitch-rnd-connect-rnd-205-00624/p/30093644?track=true&no-cache=true&marketingPopup=false
-15,1,J2,RND 205-00627,Connector:Conn_01x06_Male,Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical,~,,,,,2.1000000000000001,1.05,RND 205-00627,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,25,23,24.150000000000002,
+14,1,J1,RND 205-00624,Connector:Conn_01x03_Male,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,~,,,,,0,0,RND 205-00624,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,50,48,0,https://www.elfa.se/en/straight-male-pcb-header-through-hole-rows-contacts-54mm-pitch-rnd-connect-rnd-205-00624/p/30093644?track=true&no-cache=true&marketingPopup=false
+15,1,J2,RND 205-00627,Connector:Conn_01x06_Male,Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical,~,,,,,0,0,RND 205-00627,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,25,23,0,
 16,1,J3,Motor con,Connector:Conn_01x02_Male,Connector_PinSocket_2.54mm:PinSocket_1x02_P2.54mm_Vertical,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 17,2,"J4, J5",Conn_01x04_Male,Connector:Conn_01x04_Male,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 18,1,J6,USB_OTG_custom,mouse:USB_OTG_custom,mouse:USB_2.45, ~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
@@ -118,7 +118,7 @@ Item,Qty,Reference(s),Value,LibPart,Footprint,Datasheet,Description,Height,Manuf
 22,1,PH2,PH1_TEST,Connector:TestPoint,Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 23,1,Q1,TSM2308CX RFG,Device:Q_NMOS_GSD,Package_TO_SOT_SMD:SOT-23,~,,,,,10.42,5.21,TSM2308CX RFG,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,3,1,5.21,https://www.elfa.se/en/mosfet-single-channel-60v-3a-25w-sot-23-taiwan-semiconductor-tsm2308cx-rfg/p/30139432?track=true&no-cache=true&marketingPopup=false
 24,1,R1,15,Device:R_Small,Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,https://www.elfa.se/en/high-power-thick-film-smd-resistor-0805-13ohm-330mw-rnd-components-rnd-155hp05w3f130jt5e/p/30111773?track=true&no-cache=true&marketingPopup=false
-25,7,"R2, R9, R14, R15, R18, R19, R5",10k,Device:R_Small,Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,~,,,,,8.2627999999999986,0.59019999999999995,RT0805FRE0710KL,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,100,86,50.757199999999997,https://www.elfa.se/en/smd-resistor-125mw-10kohm-0805-yageo-rt0805fre0710kl/p/30214077?track=true&no-cache=true&marketingPopup=false
+25,7,"R2, R9, R14, R15, R18, R19, R5",10k,Device:R_Small,Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,~,,,,,19.739999999999998,1.4099999999999999,KTR10EZPF1002,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,10,0,0,https://se.farnell.com/rohm/ktr10ezpf1002/res-10k-1-0-125w-0805-thick-film/dp/2919056
 26,2,"R3, R10",1k,Device:R_Small,Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 27,5,"R4, R6, R7, R11, R12",4.7k,Device:R_Small,Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 29,1,R8,56,Device:R_Small,Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,~,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
@@ -131,14 +131,14 @@ Item,Qty,Reference(s),Value,LibPart,Footprint,Datasheet,Description,Height,Manuf
 36,1,U3,PWM3389DM-T3QU,mouse:PWM3389DM-T3QU,mouse:PMW3389DM-T3QU,,,,,,0,0,PWM3389DM-T3QU,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 37,1,U4,STM32F401RBTx,MCU_ST_STM32F4:STM32F401RBTx,Package_QFP:LQFP-64_10x10mm_P0.5mm,http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00086815.pdf,,,,,0,0,n/a,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,0,0,0,
 38,1,U5,LFXTAL055951,mouse:LFXTAL055951,mouse:LFXTAL055951,,,,,,13.699999999999999,6.8499999999999996,LFXTAL055951,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,3,1,6.8499999999999996,https://www.elfa.se/en/quartz-surface-mount-16mhz-iqd-lfxtal055951/p/30131299?track=true&no-cache=true&marketingPopup=false
-39,1,U6,9DB403DGLFT,mouse:TSSOP28,mouse:TSSOP-24,,,,,,0,,,,,0,0,
+39,1,U6,9DB403DGLFT,mouse:TSSOP28,mouse:TSSOP-24,,,,,,0,,,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,,0,0,
 40,6,"U7, U8, U9, U10, U11, U12",RND 135-00249,mouse:RND 135-00249,mouse:RND_135-00249,,,,,,15.720000000000001,1.3100000000000001,RND 135-00249,/home/ivarj/git/project/e7020e-project/schematics_and_pcb/schematics_and_pcb.kicad_sch,50,38,49.780000000000001,https://www.elfa.se/en/rgb-smd-led-0606-468nm-520nm-632nm-rnd-components-rnd-135-00249/p/30158844?track=true&no-cache=true&marketingPopup=false
 ,,,,,,,,,,,,,,,,,,
-price per mouse if comon order,276.50420000000003,,,,,,,,,,,,,,,,,
-Price per mouse if not,700.56500000000005,,,,,,,,,,,,,,,,,
+price per mouse if comon order,297.89800000000002,,,,,,,,,,,,,,,,,
+Price per mouse if not,574.62,,,,,,,,,,,,,,,,,
 price pcb,160,,,,,,,,,,,,,,,,,
-
-
-
+,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
 Total price if comon order,Total price if not,,,,,,,,,,,,,,,,,
-436.50420000000003,860.56500000000005,,,,,,,,,,,,,,,,,
+457.89800000000002,860.56500000000005,,,,,,,,,,,,,,,,,
