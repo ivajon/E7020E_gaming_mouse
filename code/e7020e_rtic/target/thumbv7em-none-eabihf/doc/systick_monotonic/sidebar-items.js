@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Systick","Systick implementing `rtic_monotonic::Monotonic` which runs at a settable rate using the `TIMER_HZ` parameter."]],"trait":[["ExtU64","Extension trait for simple short-hands for u64 Durations"]]});

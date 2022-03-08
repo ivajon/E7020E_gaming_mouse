@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["R","Register `RCR` reader"],["RCR_SPEC","repetition counter register"],["REP_R","Field `REP` reader - Repetition counter value"],["REP_W","Field `REP` writer - Repetition counter value"],["W","Register `RCR` writer"]]});

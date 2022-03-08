@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CNT_R","Field `CNT` reader - counter value"],["CNT_SPEC","counter"],["CNT_W","Field `CNT` writer - counter value"],["R","Register `CNT` reader"],["W","Register `CNT` writer"]]});

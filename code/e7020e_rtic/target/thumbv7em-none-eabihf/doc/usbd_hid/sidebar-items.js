@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["UsbError","A USB stack error."]],"mod":[["descriptor","Implements generation of HID report descriptors as well as common reports"],["hid_class","Implements HID functionality for a usb-device device."]],"type":[["Result","Result for USB operations."]]});

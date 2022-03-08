@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["WDGA_A","Activation bit"]],"struct":[["CR_SPEC","Control register"],["R","Register `CR` reader"],["T_R","Field `T` reader - 7-bit counter (MSB to LSB)"],["T_W","Field `T` writer - 7-bit counter (MSB to LSB)"],["W","Register `CR` writer"],["WDGA_R","Field `WDGA` reader - Activation bit"],["WDGA_W","Field `WDGA` writer - Activation bit"]]});

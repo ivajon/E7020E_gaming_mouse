@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Error","Invalid input error"],["LSEClockMode","LSE clock mode."]],"struct":[["Lse","RTC clock source LSE oscillator clock (type state)"],["Lsi","RTC clock source LSI oscillator clock (type state)"],["Rtc","Real Time Clock peripheral"]]});

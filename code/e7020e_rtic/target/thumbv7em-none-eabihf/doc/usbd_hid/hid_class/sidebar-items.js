@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["HIDClass","HIDClass provides an interface to declare, read & write HID reports."]]});
