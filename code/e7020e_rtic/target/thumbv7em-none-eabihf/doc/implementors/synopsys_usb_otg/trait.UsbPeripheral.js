@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["stm32f4xx_hal"] = [{"text":"impl <a class=\"trait\" href=\"synopsys_usb_otg/trait.UsbPeripheral.html\" title=\"trait synopsys_usb_otg::UsbPeripheral\">UsbPeripheral</a> for <a class=\"struct\" href=\"stm32f4xx_hal/otg_fs/struct.USB.html\" title=\"struct stm32f4xx_hal::otg_fs::USB\">USB</a>","synthetic":false,"types":["stm32f4xx_hal::otg_fs::USB"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

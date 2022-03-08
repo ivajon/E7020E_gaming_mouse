@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["INTID_R","Field `INTID` reader - Software generated interrupt ID"],["INTID_W","Field `INTID` writer - Software generated interrupt ID"],["R","Register `STIR` reader"],["STIR_SPEC","Software trigger interrupt register"],["W","Register `STIR` writer"]]});

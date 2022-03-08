@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["RmwMultiwriteNorFlashStorage",""],["RmwNorFlashStorage",""]],"trait":[["MultiwriteNorFlash","Marker trait for NorFlash relaxing the restrictions on `write`."],["NorFlash","NOR flash trait."],["ReadNorFlash","Read only NOR flash trait."]]});

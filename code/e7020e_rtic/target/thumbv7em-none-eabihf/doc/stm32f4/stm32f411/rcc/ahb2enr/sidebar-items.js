@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["OTGFSEN_A","USB OTG FS clock enable"]],"struct":[["AHB2ENR_SPEC","AHB2 peripheral clock enable register"],["OTGFSEN_R","Field `OTGFSEN` reader - USB OTG FS clock enable"],["OTGFSEN_W","Field `OTGFSEN` writer - USB OTG FS clock enable"],["R","Register `AHB2ENR` reader"],["W","Register `AHB2ENR` writer"]]});

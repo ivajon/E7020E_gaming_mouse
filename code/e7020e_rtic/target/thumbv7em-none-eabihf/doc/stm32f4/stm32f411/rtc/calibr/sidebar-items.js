@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CALIBR_SPEC","calibration register"],["DCS_R","Field `DCS` reader - Digital calibration sign"],["DCS_W","Field `DCS` writer - Digital calibration sign"],["DC_R","Field `DC` reader - Digital calibration"],["DC_W","Field `DC` writer - Digital calibration"],["R","Register `CALIBR` reader"],["W","Register `CALIBR` writer"]]});

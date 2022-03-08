@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["TIMPRE_A","Timers clocks prescalers selection"]],"struct":[["DCKCFGR_SPEC","RCC Dedicated Clock Configuration Register"],["R","Register `DCKCFGR` reader"],["TIMPRE_R","Field `TIMPRE` reader - Timers clocks prescalers selection"],["TIMPRE_W","Field `TIMPRE` writer - Timers clocks prescalers selection"],["W","Register `DCKCFGR` writer"]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["PR_A","Prescaler divider"]],"struct":[["PR_R","Field `PR` reader - Prescaler divider"],["PR_SPEC","Prescaler register"],["PR_W","Field `PR` writer - Prescaler divider"],["R","Register `PR` reader"],["W","Register `PR` writer"]]});

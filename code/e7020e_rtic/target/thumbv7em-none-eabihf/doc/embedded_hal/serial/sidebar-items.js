@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ErrorKind","Serial error kind"]],"mod":[["blocking","Blocking serial API"],["nb","Serial interface"]],"trait":[["Error","Serial error"],["ErrorType","Serial error type trait"]]});

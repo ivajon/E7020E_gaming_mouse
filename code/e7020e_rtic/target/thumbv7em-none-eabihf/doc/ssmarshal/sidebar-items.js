@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Error",""]],"fn":[["deserialize","Deserialize a value from a buffer. Returns the number of bytes used."],["serialize","Serialize a value into a buffer. Returns the number of bytes used."]]});

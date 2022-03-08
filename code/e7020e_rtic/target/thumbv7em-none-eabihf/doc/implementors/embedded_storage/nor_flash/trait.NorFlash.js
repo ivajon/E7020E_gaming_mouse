@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["stm32f4xx_hal"] = [{"text":"impl&lt;'a&gt; <a class=\"trait\" href=\"embedded_storage/nor_flash/trait.NorFlash.html\" title=\"trait embedded_storage::nor_flash::NorFlash\">NorFlash</a> for <a class=\"struct\" href=\"stm32f4xx_hal/flash/struct.UnlockedFlash.html\" title=\"struct stm32f4xx_hal::flash::UnlockedFlash\">UnlockedFlash</a>&lt;'a&gt;","synthetic":false,"types":["stm32f4xx_hal::flash::UnlockedFlash"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

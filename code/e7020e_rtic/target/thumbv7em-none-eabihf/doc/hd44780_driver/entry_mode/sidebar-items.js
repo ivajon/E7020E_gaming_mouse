@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["CursorMode","Determines if the cursor should be incremented or decremented on write"],["ShiftMode","Determines if the screen should be shifted on write"]],"struct":[["EntryMode",""]]});

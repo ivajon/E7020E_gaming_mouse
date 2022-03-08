@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CID_SPEC","core ID register"],["PRODUCT_ID_R","Field `PRODUCT_ID` reader - Product ID field"],["PRODUCT_ID_W","Field `PRODUCT_ID` writer - Product ID field"],["R","Register `CID` reader"],["W","Register `CID` writer"]]});

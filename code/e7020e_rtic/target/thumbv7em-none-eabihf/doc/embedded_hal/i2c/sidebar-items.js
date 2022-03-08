@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ErrorKind","I2C error kind"],["NoAcknowledgeSource","I2C no acknowledge error source"]],"mod":[["blocking","Blocking I2C traits"]],"trait":[["AddressMode","Address mode (7-bit / 10-bit)"],["Error","I2C error"],["ErrorType","I2C error type trait"]],"type":[["SevenBitAddress","7-bit address mode type"],["TenBitAddress","10-bit address mode type"]]});

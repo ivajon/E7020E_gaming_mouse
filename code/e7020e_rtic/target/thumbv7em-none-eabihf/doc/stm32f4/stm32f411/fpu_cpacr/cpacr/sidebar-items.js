@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CPACR_SPEC","Coprocessor access control register"],["CP_R","Field `CP` reader - CP"],["CP_W","Field `CP` writer - CP"],["R","Register `CPACR` reader"],["W","Register `CPACR` writer"]]});

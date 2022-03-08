@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["ccr","ADC common control register"]],"struct":[["RegisterBlock","Register block"]],"type":[["CCR","CCR register accessor: an alias for `Reg<CCR_SPEC>`"]]});

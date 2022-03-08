@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["DAINT_SPEC","OTG_FS device all endpoints interrupt register (OTG_FS_DAINT)"],["IEPINT_R","Field `IEPINT` reader - IN endpoint interrupt bits"],["OEPINT_R","Field `OEPINT` reader - OUT endpoint interrupt bits"],["R","Register `DAINT` reader"]]});

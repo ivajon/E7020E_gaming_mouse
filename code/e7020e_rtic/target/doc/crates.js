@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["bitfield","byteorder","cortex_m_rt_macros","cortex_m_rtic_macros","hashbrown","indexmap","paste","proc_macro2","proc_macro_error","proc_macro_error_attr","quote","rtic_syntax","serde","syn","unicode_xid","usbd_hid_descriptors","usbd_hid_macros"];

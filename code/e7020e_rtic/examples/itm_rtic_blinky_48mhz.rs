@@ -58,10 +58,10 @@ mod app {
             .write(|w| w.gpioaen().enabled().gpioben().enabled());
 
         // set core clock to 48MHz and freeze the settings
-        let clk = rcc.constrain().cfgr.sysclk(48.mhz()).freeze();
+        let clk = rcc.constrain().cfgr.sysclk(48.Mhz()).freeze();
 
         // Initialize the monotonic (SysTick driven by core clock)
-        let mono = DwtSystick::new(&mut dcb, dwt, systick, clk.sysclk().0);
+        let mono = DwtSystick::new(&mut dcb, dwt, systick, clk.sysclk().raw());
 
         let stim = &mut cx.core.ITM.stim;
         iprintln!(&mut stim[0], "init");

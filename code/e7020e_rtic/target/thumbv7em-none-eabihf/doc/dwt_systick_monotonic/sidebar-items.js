@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["DwtSystick","DWT and Systick combination implementing `embedded_time::Clock` and `rtic_monotonic::Monotonic`"]],"trait":[["ExtU32","Extension trait for simple short-hands for u32 Durations"]]});

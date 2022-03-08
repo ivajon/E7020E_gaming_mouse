@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["PAR_SPEC","stream x peripheral address register"],["PA_R","Field `PA` reader - Peripheral address"],["PA_W","Field `PA` writer - Peripheral address"],["R","Register `PAR` reader"],["W","Register `PAR` writer"]]});

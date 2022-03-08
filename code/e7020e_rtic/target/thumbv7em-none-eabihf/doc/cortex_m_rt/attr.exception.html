@@ -1,0 +1,92 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Attribute to declare an exception handler"><meta name="keywords" content="rust, rustlang, rust-lang, exception"><title>exception in cortex_m_rt - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../dark.css" disabled><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../storage.js"></script><script src="../crates.js"></script><script defer src="../main.js"></script>
+    <noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../favicon.svg"></head><body class="rustdoc attr"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a class="sidebar-logo" href="../cortex_m_rt/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.png" alt="logo"></div>
+        </a><div class="sidebar-elems"><h2 class="location">Other items in<br><a href="index.html">cortex_m_rt</a></h2><div id="sidebar-vars" data-name="exception" data-ty="attr" data-relpath=""></div><script defer src="sidebar-items.js"></script></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../cortex_m_rt/index.html"><img class="rust-logo" src="../rust-logo.png" alt="logo"></a><nav class="sub"><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img width="18" height="18" alt="Pick another theme!" src="../brush.svg"></button><div id="theme-choices" role="menu"></div></div><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../settings.html" title="settings"><img width="18" height="18" alt="Change settings" src="../wheel.svg"></a></div></form></nav></div><section id="main-content" class="content"><h1 class="fqn"><span class="in-band">Attribute Macro <a href="index.html">cortex_m_rt</a>::<wbr><a class="attr" href="#">exception</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></span></h1><div class="docblock item-decl"><pre class="rust attr"><code>#[exception]</code></pre></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Attribute to declare an exception handler</p>
+<p><strong>IMPORTANT</strong>: If you are using Rust 1.30 this attribute must be used on reachable items (i.e.
+there must be no private modules between the item and the root of the crate); if the item is in
+the root of the crate you’ll be fine. This reachability restriction doesn’t apply to Rust 1.31
+and newer releases.</p>
+<h2 id="syntax" class="section-header"><a href="#syntax">Syntax</a></h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attribute">#[<span class="ident">exception</span>]</span>
+<span class="kw">fn</span> <span class="ident">SysTick</span>() {
+    <span class="comment">// ..</span>
+}
+</code></pre></div>
+<p>where the name of the function must be one of:</p>
+<ul>
+<li><code>DefaultHandler</code></li>
+<li><code>NonMaskableInt</code></li>
+<li><code>HardFault</code></li>
+<li><code>MemoryManagement</code> (a)</li>
+<li><code>BusFault</code> (a)</li>
+<li><code>UsageFault</code> (a)</li>
+<li><code>SecureFault</code> (b)</li>
+<li><code>SVCall</code></li>
+<li><code>DebugMonitor</code> (a)</li>
+<li><code>PendSV</code></li>
+<li><code>SysTick</code></li>
+</ul>
+<p>(a) Not available on Cortex-M0 variants (<code>thumbv6m-none-eabi</code>)</p>
+<p>(b) Only available on ARMv8-M</p>
+<h2 id="usage" class="section-header"><a href="#usage">Usage</a></h2>
+<p><code>#[exception] unsafe fn HardFault(..</code> sets the hard fault handler. The handler must have
+signature <code>unsafe fn(&amp;ExceptionFrame) -&gt; !</code>. This handler is not allowed to return as that can
+cause undefined behavior.</p>
+<p><code>#[exception] unsafe fn DefaultHandler(..</code> sets the <em>default</em> handler. All exceptions which have
+not been assigned a handler will be serviced by this handler. This handler must have signature
+<code>unsafe fn(irqn: i16) [-&gt; !]</code>. <code>irqn</code> is the IRQ number (See CMSIS); <code>irqn</code> will be a negative
+number when the handler is servicing a core exception; <code>irqn</code> will be a positive number when the
+handler is servicing a device specific exception (interrupt).</p>
+<p><code>#[exception] fn Name(..</code> overrides the default handler for the exception with the given <code>Name</code>.
+These handlers must have signature <code>[unsafe] fn() [-&gt; !]</code>. When overriding these other exception
+it’s possible to add state to them by declaring <code>static mut</code> variables at the beginning of the
+body of the function. These variables will be safe to access from the function body.</p>
+<h2 id="properties" class="section-header"><a href="#properties">Properties</a></h2>
+<p>Exception handlers can only be called by the hardware. Other parts of the program can’t refer to
+the exception handlers, much less invoke them as if they were functions.</p>
+<p><code>static mut</code> variables declared within an exception handler are safe to access and can be used
+to preserve state across invocations of the handler. The compiler can’t prove this is safe so
+the attribute will help by making a transformation to the source code: for this reason a
+variable like <code>static mut FOO: u32</code> will become <code>let FOO: &amp;mut u32;</code>.</p>
+<h2 id="safety" class="section-header"><a href="#safety">Safety</a></h2>
+<p>It is not generally safe to register handlers for non-maskable interrupts. On Cortex-M,
+<code>HardFault</code> is non-maskable (at least in general), and there is an explicitly non-maskable
+interrupt <code>NonMaskableInt</code>.</p>
+<p>The reason for that is that non-maskable interrupts will preempt any currently running function,
+even if that function executes within a critical section. Thus, if it was safe to define NMI
+handlers, critical sections wouldn’t work safely anymore.</p>
+<p>This also means that defining a <code>DefaultHandler</code> must be unsafe, as that will catch
+<code>NonMaskableInt</code> and <code>HardFault</code> if no handlers for those are defined.</p>
+<p>The safety requirements on those handlers is as follows: The handler must not access any data
+that is protected via a critical section and shared with other interrupts that may be preempted
+by the NMI while holding the critical section. As long as this requirement is fulfilled, it is
+safe to handle NMIs.</p>
+<h2 id="examples" class="section-header"><a href="#examples">Examples</a></h2>
+<ul>
+<li>Setting the default handler</li>
+</ul>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use</span> <span class="ident">cortex_m_rt::exception</span>;
+
+<span class="attribute">#[<span class="ident">exception</span>]</span>
+<span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">DefaultHandler</span>(<span class="ident">irqn</span>: <span class="ident">i16</span>) {
+    <span class="macro">println!</span>(<span class="string">&quot;IRQn = {}&quot;</span>, <span class="ident">irqn</span>);
+}
+</code></pre></div>
+<ul>
+<li>Overriding the <code>SysTick</code> handler</li>
+</ul>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use</span> <span class="ident">cortex_m_rt::exception</span>;
+
+<span class="attribute">#[<span class="ident">exception</span>]</span>
+<span class="kw">fn</span> <span class="ident">SysTick</span>() {
+    <span class="kw">static</span> <span class="kw-2">mut</span> <span class="ident">COUNT</span>: <span class="ident">i32</span> <span class="op">=</span> <span class="number">0</span>;
+
+    <span class="comment">// `COUNT` is safe to access and has type `&amp;mut i32`</span>
+    <span class="kw-2">*</span><span class="ident">COUNT</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
+
+    <span class="macro">println!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">COUNT</span>);
+}
+</code></pre></div>
+</div></details></section><section id="search" class="content hidden"></section></div></main><div id="rustdoc-vars" data-root-path="../" data-current-crate="cortex_m_rt" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.59.0 (9d1b2106e 2022-02-23)" ></div>
+</body></html>

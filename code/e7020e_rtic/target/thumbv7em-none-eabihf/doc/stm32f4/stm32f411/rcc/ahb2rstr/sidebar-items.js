@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["OTGFSRST_A","USB OTG FS module reset"]],"struct":[["AHB2RSTR_SPEC","AHB2 peripheral reset register"],["OTGFSRST_R","Field `OTGFSRST` reader - USB OTG FS module reset"],["OTGFSRST_W","Field `OTGFSRST` writer - USB OTG FS module reset"],["R","Register `AHB2RSTR` reader"],["W","Register `AHB2RSTR` writer"]]});
