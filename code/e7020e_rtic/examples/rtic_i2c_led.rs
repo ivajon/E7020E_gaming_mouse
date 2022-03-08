@@ -19,7 +19,8 @@ use panic_halt as _;
 mod app {
     use cortex_m_semihosting::hprintln;
     use embedded_hal::blocking::i2c;
-    use stm32f4xx_hal::i2c::I2c3;
+    use stm32f4xx_hal::i2c::I2c;
+    use stm32f4xx_hal::i2c::Mode;
 
     #[shared]
     struct Shared {}
@@ -34,16 +35,17 @@ mod app {
         }
 
         // running on I2C3 pins PC9 = SDA & SCL = PA8
-        /*
         let dp = cx.device;
         let i2c_dp = dp.I2C3;
+
         let gpioa = dp.GPIOA.split();
         let gpioc = dp.GPIOC.split();
         let sda_pin = gpioc.pc9.into_alternate::I2C3_SDA();
         let scl_pin = gpioa.pa8.into_alternate::I2C3_SCL();
-        */
 
-        let i2c = I2C3::new();
+        let pins = (scl_pin, sda_pin);
+
+        let i2c = I2c::new(i2c_dp, pins, Mode::Standard, clocks: &Clocks);
 
         (Shared {}, Local {}, init::Monotonics())
     }
