@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["DATACOUNT_R","Field `DATACOUNT` reader - Data count value"],["DCOUNT_SPEC","data counter register"],["R","Register `DCOUNT` reader"]]});

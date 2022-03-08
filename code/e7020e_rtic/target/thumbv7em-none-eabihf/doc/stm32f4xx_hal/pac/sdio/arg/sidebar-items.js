@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ARG_SPEC","argument register"],["CMDARG_R","Field `CMDARG` reader - Command argument"],["CMDARG_W","Field `CMDARG` writer - Command argument"],["R","Register `ARG` reader"],["W","Register `ARG` writer"]]});

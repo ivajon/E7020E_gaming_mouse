@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["DVBUSPULSE_SPEC","OTG_FS device VBUS pulsing time register"],["DVBUSP_R","Field `DVBUSP` reader - Device VBUS pulsing time"],["DVBUSP_W","Field `DVBUSP` writer - Device VBUS pulsing time"],["R","Register `DVBUSPULSE` reader"],["W","Register `DVBUSPULSE` writer"]]});

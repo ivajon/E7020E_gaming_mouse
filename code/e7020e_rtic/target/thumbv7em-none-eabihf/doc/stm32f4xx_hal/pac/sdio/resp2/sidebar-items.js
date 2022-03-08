@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CARDSTATUS2_R","Field `CARDSTATUS2` reader - Card Status"],["R","Register `RESP2` reader"],["RESP2_SPEC","response 1..4 register"]]});

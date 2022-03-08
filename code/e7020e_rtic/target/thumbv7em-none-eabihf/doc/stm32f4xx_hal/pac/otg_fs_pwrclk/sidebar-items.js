@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["pcgcctl","OTG_FS power and clock gating control register"]],"struct":[["RegisterBlock","Register block"]],"type":[["PCGCCTL","PCGCCTL register accessor: an alias for `Reg<PCGCCTL_SPEC>`"]]});

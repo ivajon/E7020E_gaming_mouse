@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["DIEPEMPMSK_SPEC","OTG_FS device IN endpoint FIFO empty interrupt mask register"],["INEPTXFEM_R","Field `INEPTXFEM` reader - IN EP Tx FIFO empty interrupt mask bits"],["INEPTXFEM_W","Field `INEPTXFEM` writer - IN EP Tx FIFO empty interrupt mask bits"],["R","Register `DIEPEMPMSK` reader"],["W","Register `DIEPEMPMSK` writer"]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["FIFODATA_R","Field `FIFOData` reader - Receive and transmit FIFO data"],["FIFODATA_W","Field `FIFOData` writer - Receive and transmit FIFO data"],["FIFO_SPEC","data FIFO register"],["R","Register `FIFO` reader"],["W","Register `FIFO` writer"]]});

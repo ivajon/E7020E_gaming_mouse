@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CCR1_H_R","Field `CCR1_H` reader - High Capture/Compare 1 value"],["CCR1_H_W","Field `CCR1_H` writer - High Capture/Compare 1 value"],["CCR_R","Field `CCR` reader - Capture/Compare value"],["CCR_SPEC","capture/compare register"],["CCR_W","Field `CCR` writer - Capture/Compare value"],["R","Register `CCR%s` reader"],["W","Register `CCR%s` writer"]]});

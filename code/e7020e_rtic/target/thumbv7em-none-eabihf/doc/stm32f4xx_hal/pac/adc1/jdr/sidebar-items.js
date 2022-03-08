@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["JDATA_R","Field `JDATA` reader - Injected data"],["JDR_SPEC","injected data register x"],["R","Register `JDR%s` reader"]]});

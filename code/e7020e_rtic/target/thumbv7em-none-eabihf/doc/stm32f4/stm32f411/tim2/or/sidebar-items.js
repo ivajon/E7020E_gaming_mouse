@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ITR1_RMP_R","Field `ITR1_RMP` reader - Timer Input 4 remap"],["ITR1_RMP_W","Field `ITR1_RMP` writer - Timer Input 4 remap"],["OR_SPEC","TIM5 option register"],["R","Register `OR` reader"],["W","Register `OR` writer"]]});

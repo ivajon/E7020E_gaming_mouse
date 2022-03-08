@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["DT_R","Field `DT` reader - Date tens in BCD format"],["DU_R","Field `DU` reader - Date units in BCD format"],["MT_R","Field `MT` reader - Month tens in BCD format"],["MU_R","Field `MU` reader - Month units in BCD format"],["R","Register `TSDR` reader"],["TSDR_SPEC","time stamp date register"],["WDU_R","Field `WDU` reader - Week day units"]]});

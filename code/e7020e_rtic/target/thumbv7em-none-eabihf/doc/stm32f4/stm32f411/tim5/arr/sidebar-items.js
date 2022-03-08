@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ARR_R","Field `ARR` reader - Auto-reload value"],["ARR_SPEC","auto-reload register"],["ARR_W","Field `ARR` writer - Auto-reload value"],["R","Register `ARR` reader"],["W","Register `ARR` writer"]]});

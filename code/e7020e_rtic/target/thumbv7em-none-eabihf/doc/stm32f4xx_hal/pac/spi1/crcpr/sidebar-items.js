@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CRCPOLY_R","Field `CRCPOLY` reader - CRC polynomial register"],["CRCPOLY_W","Field `CRCPOLY` writer - CRC polynomial register"],["CRCPR_SPEC","CRC polynomial register"],["R","Register `CRCPR` reader"],["W","Register `CRCPR` writer"]]});

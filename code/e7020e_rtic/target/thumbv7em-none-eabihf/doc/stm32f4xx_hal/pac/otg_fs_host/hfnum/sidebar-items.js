@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["FRNUM_R","Field `FRNUM` reader - Frame number"],["FTREM_R","Field `FTREM` reader - Frame time remaining"],["HFNUM_SPEC","OTG_FS host frame number/frame time remaining register (OTG_FS_HFNUM)"],["R","Register `HFNUM` reader"]]});

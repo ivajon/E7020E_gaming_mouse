@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["KEY_W","Field `KEY` writer - Write protection key"],["W","Register `WPR` writer"],["WPR_SPEC","write protection register"]]});

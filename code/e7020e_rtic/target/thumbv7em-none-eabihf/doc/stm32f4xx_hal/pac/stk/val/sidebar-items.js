@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CURRENT_R","Field `CURRENT` reader - Current counter value"],["CURRENT_W","Field `CURRENT` writer - Current counter value"],["R","Register `VAL` reader"],["VAL_SPEC","SysTick current value register"],["W","Register `VAL` writer"]]});

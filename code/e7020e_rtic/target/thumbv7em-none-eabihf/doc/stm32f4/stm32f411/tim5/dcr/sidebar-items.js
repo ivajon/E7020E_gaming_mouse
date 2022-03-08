@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["DBA_R","Field `DBA` reader - DMA base address"],["DBA_W","Field `DBA` writer - DMA base address"],["DBL_R","Field `DBL` reader - DMA burst length"],["DBL_W","Field `DBL` writer - DMA burst length"],["DCR_SPEC","DMA control register"],["R","Register `DCR` reader"],["W","Register `DCR` writer"]]});

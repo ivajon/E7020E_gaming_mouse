@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["DATATIME_R","Field `DATATIME` reader - Data timeout period"],["DATATIME_W","Field `DATATIME` writer - Data timeout period"],["DTIMER_SPEC","data timer register"],["R","Register `DTIMER` reader"],["W","Register `DTIMER` writer"]]});

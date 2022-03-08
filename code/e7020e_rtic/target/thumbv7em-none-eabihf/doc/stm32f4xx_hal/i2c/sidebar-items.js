@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["DutyCycle",""],["Error",""],["Mode",""],["NoAcknowledgeSource","I2C no acknowledge error source"]],"struct":[["I2c","I2C abstraction"],["Scl",""],["Sda",""]],"trait":[["I2cExt",""],["Instance",""],["Pins",""]],"type":[["I2c1",""],["I2c2",""],["I2c3",""]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["PWRCTRL_A","PWRCTRL"]],"struct":[["POWER_SPEC","power control register"],["PWRCTRL_R","Field `PWRCTRL` reader - PWRCTRL"],["PWRCTRL_W","Field `PWRCTRL` writer - PWRCTRL"],["R","Register `POWER` reader"],["W","Register `POWER` writer"]]});

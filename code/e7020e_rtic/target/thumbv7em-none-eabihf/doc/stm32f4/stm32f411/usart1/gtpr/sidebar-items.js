@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["GTPR_SPEC","Guard time and prescaler register"],["GT_R","Field `GT` reader - Guard time value"],["GT_W","Field `GT` writer - Guard time value"],["PSC_R","Field `PSC` reader - Prescaler value"],["PSC_W","Field `PSC` writer - Prescaler value"],["R","Register `GTPR` reader"],["W","Register `GTPR` writer"]]});
