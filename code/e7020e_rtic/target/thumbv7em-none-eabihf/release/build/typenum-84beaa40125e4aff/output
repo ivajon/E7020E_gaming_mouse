@@ -1,0 +1,2 @@
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=/home/s7rul/Documents/KiCad/inbyggda system/e7020e-project/code/e7020e_rtic/target/thumbv7em-none-eabihf/release/build/typenum-84beaa40125e4aff/out/consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=/home/s7rul/Documents/KiCad/inbyggda system/e7020e-project/code/e7020e_rtic/target/thumbv7em-none-eabihf/release/build/typenum-84beaa40125e4aff/out/op.rs

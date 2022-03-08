@@ -32,8 +32,16 @@ mod app {
             hprintln!("RTIC Says Hello, to all students!! {}", a).unwrap();
         }
 
+        // running on I2C3 pins PC9 = SDA & SCL = PA8
         let dp = cx.device;
+        let i2c_dp = dp.I2C3;
 
+        let gpioa = dp.GPIOA.split();
+        let gpioc = dp.GPIOC.split();
+        let sda_pin = gpioc.pc9.into_alternate::I2C3_SDA();
+        let scl_pin = gpioa.pa8.into_alternate::I2C3_SCL();
+
+        let i2c = 
 
         (Shared {}, Local {}, init::Monotonics())
     }
