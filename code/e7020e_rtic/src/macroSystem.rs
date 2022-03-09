@@ -43,97 +43,98 @@ impl MacroConfig {
     }
 
 
-    pub fn push_left(&self, &mut mouse: MouseKeyboardState) {
+    pub fn push_left(&self, mouse: &mut MouseKeyboardState) {
         do_function(self.left_button, mouse);
     }
 
-    pub fn push_right(&self, &mut mouse: MouseKeyboardState) {
+    pub fn push_right(&self, mouse: &mut MouseKeyboardState) {
         do_function(self.right_button, mouse);
     }
 
-    pub fn push_middle(&self, &mut mouse: MouseKeyboardState) {
+    pub fn push_middle(&self, mouse: &mut MouseKeyboardState) {
         do_function(self.middle_button, mouse);
     }
 
-    pub fn push_side_front(&self, &mut mouse: MouseKeyboardState) {
+    pub fn push_side_front(&self, mouse: &mut MouseKeyboardState) {
         do_function(self.side_button_front, mouse);
     }
 
-    pub fn push_side_back(&self, &mut mouse: MouseKeyboardState) {
+    pub fn push_side_back(&self, mouse: &mut MouseKeyboardState) {
         do_function(self.side_button_back, mouse);
     }
 
-    pub fn release_left(&self, &mut mouse: MouseKeyboardState) {
+    pub fn release_left(&self, mouse: &mut MouseKeyboardState) {
         end_function(self.left_button, mouse);
     }
 
-    pub fn release_right(&self, &mut mouse: MouseKeyboardState) {
+    pub fn release_right(&self, mouse: &mut MouseKeyboardState) {
         end_function(self.right_button, mouse);
     }
 
-    pub fn release_middle(&self, &mut mouse: MouseKeyboardState) {
+    pub fn release_middle(&self, mouse: &mut MouseKeyboardState) {
         end_function(self.middle_button, mouse);
     }
 
-    pub fn release_side_front(&self, &mut mouse: MouseKeyboardState) {
+    pub fn release_side_front(&self, mouse: &mut MouseKeyboardState) {
         end_function(self.side_button_front, mouse);
     }
 
-    pub fn release_side_back(&self, &mut mouse: MouseKeyboardState) {
+    pub fn release_side_back(&self, mouse: &mut MouseKeyboardState) {
         end_function(self.side_button_back, mouse);
     }
 
-    pub fn scroll_up(&self, &mut mouse: MouseKeyboardState) {
+    pub fn scroll_up(&self, mouse: &mut MouseKeyboardState) {
         do_function(self.scroll_up, mouse);
     }
 
-    pub fn scroll_down(&self, &mut mouse: MouseKeyboardState) {
+    pub fn scroll_down(&self, mouse: &mut MouseKeyboardState) {
         do_function(self.scroll_down, mouse);
     }
 }
 
-fn do_function(f: Function, mouse: MouseKeyboardState) {
+fn do_function(f: Function, mouse: &mut MouseKeyboardState) {
     match f {
-        LeftClick => {
+        Function::LeftClick => {
             mouse.push_left();
         },
-        RightClick => {
+        Function::RightClick => {
             mouse.push_right();
         },
-        MiddleClick => {
+        Function::MiddleClick => {
             mouse.push_middle();
         },
-        ScrollUp => {
+        Function::ScrollUp => {
             mouse.wheel_up();
         },
-        ScrollDown => {
+        Function::ScrollDown => {
             mouse.wheel_down();
         },
-        PressKeyboard(key) => {
+        Function::PressKeyboard(key) => {
             mouse.push_keybord_key(key);
         },
         _ => (),
     }
 }
 
-fn end_function(f: Function, mouse: MouseKeyboardState) {
+fn end_function(f: Function, mouse: &mut MouseKeyboardState) {
     match f {
-        LeftClick => {
+        Function::LeftClick => {
             mouse.release_left();
         },
-        RightClick => {
+        Function::RightClick => {
             mouse.release_right();
         },
-        MiddleClick => {
+        Function::MiddleClick => {
             mouse.release_middle();
         },
-        PressKeyboard(key) => {
+        Function::PressKeyboard(key) => {
             mouse.release_keybord_key(key);
         },
         _ => (),
     }
 }
 
+#[derive(Copy, Clone)]
 pub enum Function {
     LeftClick,
     RightClick,

@@ -27,13 +27,14 @@ mod app {
 
     use app::hidDescriptors::MouseKeyboard;
     use app::mouseKeyboardReport::MouseKeyboardState;
-    use app::macroSystem::MacroConfig;
+    use app::macroSystem::{MacroConfig, Function};
     
     type Button = ErasedPin<Input<PullUp>>;
 
     #[shared]
     struct Shared {
-        mouse: MouseKeyboardState
+        mouse: MouseKeyboardState,
+        macro_conf: MacroConfig
     }
 
     #[local]
@@ -86,6 +87,14 @@ mod app {
 
         let mouse = MouseKeyboardState::new();
 
+        let mut macro_conf = MacroConfig::new();
+        macro_conf.update_config(
+            Function::PressKeyboard(0x4), Function::Nothing,
+            Function::Nothing, Function::Nothing,
+            Function::Nothing, Function::Nothing,
+            Function::Nothing
+        );
+
         let usb_dev =
             UsbDeviceBuilder::new(cx.local.bus.as_ref().unwrap(), UsbVidPid(0xc410, 0x0000))
                 .manufacturer("e7020e")
@@ -94,11 +103,11 @@ mod app {
                 .device_class(0) // Hid
                 .build();
 
-        (Shared {mouse}, Local { usb_dev, hid, button}, init::Monotonics())
+        (Shared {mouse, macro_conf}, Local { usb_dev, hid, button}, init::Monotonics())
     }
 
     // B1 is connected to PC13
-    #[task(binds=EXTI15_10, local = [button], shared = [mouse])]
+    #[task(binds=EXTI15_10, local = [button], shared = [mouse, macro_conf])]
     fn button_pressed(mut cx: button_pressed::Context) {
         // this should be automatic
         cx.local.button.clear_interrupt_pending_bit();
@@ -106,12 +115,16 @@ mod app {
         if cx.local.button.is_low() {
             rprintln!("button low");
             cx.shared.mouse.lock(|mouse| {
-                mouse.push_keybord_key(0x04);
+                cx.shared.macro_conf.lock(|macro_conf| {
+                    macro_conf.push_left(mouse);
+                });
             });
         } else {
             rprintln!("button high");
             cx.shared.mouse.lock(|mouse| {
-                mouse.release_keybord_key(0x04);
+                cx.shared.macro_conf.lock(|macro_conf| {
+                    macro_conf.release_left(mouse);
+                });
             });
         }
     }
