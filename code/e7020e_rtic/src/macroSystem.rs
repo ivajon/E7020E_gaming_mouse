@@ -10,7 +10,7 @@ pub struct MacroConfig {
     side_button_back: Function,
 }
 
-struct MacroSequence {
+pub struct MacroSequence {
     functions: [Function; 5],
     delays: [u8; 5],
     hold_times: [u8; 5],
