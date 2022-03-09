@@ -13,7 +13,7 @@
 use panic_rtt_target as _;
 
 
-#[rtic::app(device = stm32f4::stm32f411, dispatchers = [EXTI0])]
+#[rtic::app(device = stm32f4::stm32f401, dispatchers = [EXTI0])]
 mod app {
     use rtt_target::{rprintln, rtt_init_print};
     use stm32f4xx_hal::otg_fs::{UsbBus, USB};
@@ -69,7 +69,8 @@ mod app {
         };
 
         let gpioc = dp.GPIOC.split();
-        let mut button = gpioc.pc13.into_pull_up_input().erase();
+        let gpiob = dp.GPIOB.split();
+        let mut button = gpiob.pb1.into_pull_up_input().erase();
         let mut sys_cfg = dp.SYSCFG.constrain();
 
         // Enable interuppts for PC13
@@ -107,7 +108,7 @@ mod app {
     }
 
     // B1 is connected to PC13
-    #[task(binds=EXTI15_10, local = [button], shared = [mouse, macro_conf])]
+    #[task(binds=EXTI1, local = [button], shared = [mouse, macro_conf])]
     fn button_pressed(mut cx: button_pressed::Context) {
         // this should be automatic
         cx.local.button.clear_interrupt_pending_bit();

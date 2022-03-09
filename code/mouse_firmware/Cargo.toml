@@ -1,0 +1,58 @@
+[package]
+authors = ["Per Lindgren <per.lindgren@ltu.se>"]
+edition = "2021"
+readme = "README.md"
+name = "app"
+version = "0.1.0"
+
+[dependencies]
+cortex-m = { version = "0.7.4", features = ["linker-plugin-lto"] }
+cortex-m-semihosting = "0.3.7"
+
+cortex-m-rtic = "1.0.0"
+embedded-hal = "0.2.7"
+
+# Panic handlers, comment out all but one to generate doc!
+panic-halt = "0.2.0"
+
+# Uncomment for the itm panic examples.
+panic-itm = "0.4.2"
+
+# Uncomment for the rtt-timing examples.
+panic-rtt-target = { version = "0.1.2", features = ["cortex-m"] }
+
+# Uncomment for the semihosting examples.
+panic-semihosting = "0.5.6"
+
+# Tracing
+rtt-target = { version = "0.3.1", features = ["cortex-m"] }
+
+# Monotonic timers
+systick-monotonic = "1.0.0"
+dwt-systick-monotonic = "1.0.0"
+nb = "1.0.0"
+usb-device = "0.2.8"
+usbd-serial = "0.1.1"
+usbd-hid = "0.5.2"
+fugit = "0.3.5"
+
+[dependencies.stm32f4]
+version = "0.14.0"
+features = ["stm32f411", "rt"]
+# features = ["stm32f401", "rt"]
+
+[dependencies.stm32f4xx-hal]
+version = "0.12.0"
+features = ["rt", "stm32f411", "usb_fs"]
+# features = ["rt", "stm32f401", "usb_fs"]
+
+[profile.dev]
+incremental = false
+codegen-units = 1
+# overflow-checks = false # uncomment to disable overflow checks for dev/debug builds  
+
+[profile.release]
+incremental = false
+codegen-units = 1   # better optimizations
+debug = true        # symbols are nice and they don't increase the size on Flash
+lto = true          # better optimizations

@@ -2,7 +2,7 @@
 {
     #[doc =
       r" Always include the device crate which contains the vector table"] use
-    stm32f4 :: stm32f411 as
+    stm32f4 :: stm32f401 as
     you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml ; use
     rtt_target :: { rprintln, rtt_init_print } ; use stm32f4xx_hal :: otg_fs
     :: { UsbBus, USB } ; use stm32f4xx_hal :: prelude :: * ; use stm32f4xx_hal
@@ -28,10 +28,10 @@
             usb_pwrclk : dp.OTG_FS_PWRCLK, pin_dm :
             gpioa.pa11.into_alternate(), pin_dp : gpioa.pa12.into_alternate(),
             hclk : clocks.hclk(),
-        } ; let gpioc = dp.GPIOC.split() ; let mut button =
-        gpioc.pc13.into_pull_up_input().erase() ; let mut sys_cfg =
-        dp.SYSCFG.constrain() ; button.make_interrupt_source(& mut sys_cfg) ;
-        button.enable_interrupt(& mut dp.EXTI) ;
+        } ; let gpioc = dp.GPIOC.split() ; let gpiob = dp.GPIOB.split() ; let
+        mut button = gpiob.pb1.into_pull_up_input().erase() ; let mut sys_cfg
+        = dp.SYSCFG.constrain() ; button.make_interrupt_source(& mut sys_cfg)
+        ; button.enable_interrupt(& mut dp.EXTI) ;
         button.trigger_on_edge(& mut dp.EXTI, Edge :: RisingFalling) ;
         cx.local.bus.replace(UsbBus :: new(usb, cx.local.EP_MEMORY)) ; let hid
         = HIDClass ::
@@ -111,7 +111,7 @@
     {
         #[doc = r" Core (Cortex-M) peripherals"] pub core : rtic :: export ::
         Peripherals, #[doc = r" Device peripherals"] pub device : stm32f4 ::
-        stm32f411 :: Peripherals, #[doc = r" Critical section token for init"]
+        stm32f401 :: Peripherals, #[doc = r" Critical section token for init"]
         pub cs : rtic :: export :: CriticalSection < 'a >,
         #[doc = r" Local Resources this task has access to"] pub local : init
         :: LocalResources < >,
@@ -122,7 +122,7 @@
         {
             __rtic_internal_init_Context
             {
-                device : stm32f4 :: stm32f411 :: Peripherals :: steal(), cs :
+                device : stm32f4 :: stm32f401 :: Peripherals :: steal(), cs :
                 rtic :: export :: CriticalSection :: new(), core, local : init
                 :: LocalResources :: new(),
             }
@@ -254,7 +254,7 @@
             {
                 rtic :: export ::
                 lock(__rtic_internal_shared_resource_mouse.get_mut() as * mut
-                     _, self.priority(), CEILING, stm32f4 :: stm32f411 ::
+                     _, self.priority(), CEILING, stm32f4 :: stm32f401 ::
                      NVIC_PRIO_BITS, f,)
             }
         }
@@ -273,7 +273,7 @@
             {
                 rtic :: export ::
                 lock(__rtic_internal_shared_resource_macro_conf.get_mut() as *
-                     mut _, self.priority(), CEILING, stm32f4 :: stm32f411 ::
+                     mut _, self.priority(), CEILING, stm32f4 :: stm32f401 ::
                      NVIC_PRIO_BITS, f,)
             }
         }
@@ -305,7 +305,7 @@
     #[allow(non_upper_case_globals)] #[doc(hidden)] static
     __rtic_internal_local_usb_fs_counter : rtic :: RacyCell < u16 > = rtic ::
     RacyCell :: new(0) ; #[allow(non_snake_case)] #[no_mangle] unsafe fn
-    EXTI15_10()
+    EXTI1()
     {
         const PRIORITY : u8 = 1u8 ; rtic :: export ::
         run(PRIORITY, ||
@@ -388,20 +388,19 @@
             you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml ::
             interrupt :: EXTI0 ; let _ =
             [() ;
-             ((1 << stm32f4 :: stm32f411 :: NVIC_PRIO_BITS) - 1u8 as usize)] ;
+             ((1 << stm32f4 :: stm32f401 :: NVIC_PRIO_BITS) - 1u8 as usize)] ;
             core.NVIC.set_priority(you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml
-                                   :: interrupt :: EXTI15_10, rtic :: export
-                                   ::
-                                   logical2hw(1u8, stm32f4 :: stm32f411 ::
+                                   :: interrupt :: EXTI1, rtic :: export ::
+                                   logical2hw(1u8, stm32f4 :: stm32f401 ::
                                               NVIC_PRIO_BITS),) ; rtic ::
             export :: NVIC ::
             unmask(you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml
-                   :: interrupt :: EXTI15_10) ; let _ =
+                   :: interrupt :: EXTI1) ; let _ =
             [() ;
-             ((1 << stm32f4 :: stm32f411 :: NVIC_PRIO_BITS) - 1u8 as usize)] ;
+             ((1 << stm32f4 :: stm32f401 :: NVIC_PRIO_BITS) - 1u8 as usize)] ;
             core.NVIC.set_priority(you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml
                                    :: interrupt :: OTG_FS, rtic :: export ::
-                                   logical2hw(1u8, stm32f4 :: stm32f411 ::
+                                   logical2hw(1u8, stm32f4 :: stm32f401 ::
                                               NVIC_PRIO_BITS),) ; rtic ::
             export :: NVIC ::
             unmask(you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml

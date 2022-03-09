@@ -11,7 +11,7 @@
 
 use panic_semihosting as _;
 
-#[rtic::app(device = stm32f4::stm32f411)]
+#[rtic::app(device = stm32f4::stm32f401)]
 mod app {
     use cortex_m_semihosting::hprintln;
 
