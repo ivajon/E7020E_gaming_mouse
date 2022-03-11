@@ -12,7 +12,7 @@
 
 use panic_rtt_target as _;
 
-#[rtic::app(device = stm32f4::stm32f411, dispatchers = [EXTI0])]
+#[rtic::app(device = stm32f4::stm32f401, dispatchers = [DMA1_STREAM0])]
 mod app {
     use rtt_target::{rprintln, rtt_init_print};
     use stm32f4xx_hal::otg_fs::{UsbBus, USB};
@@ -26,7 +26,8 @@ mod app {
 
     use app::mouseReport::MouseState;
 
-    type Button = ErasedPin<Input<PullUp>>;
+    //type Button = ErasedPin<Input<PullUp>>;
+    type Button = ErasedPin<Input<PullDown>>;
 
     #[shared]
     struct Shared {
@@ -37,7 +38,11 @@ mod app {
     struct Local {
         usb_dev: UsbDevice<'static, UsbBus<USB>>,
         hid: HIDClass<'static, UsbBus<USB>>,
-        button: Button
+        left: Button,
+        right: Button,
+        middle: Button,
+        front: Button,
+        back: Button,
     }
 
     const POLL_INTERVAL_MS: u8 = 1;
@@ -54,6 +59,8 @@ mod app {
         let clocks = rcc.cfgr.sysclk(48.MHz()).require_pll48clk().freeze();
 
         let gpioa = dp.GPIOA.split();
+        let gpiob = dp.GPIOB.split();
+        let gpioc = dp.GPIOC.split();
 
         let usb = USB {
             usb_global: dp.OTG_FS_GLOBAL,
@@ -64,14 +71,45 @@ mod app {
             hclk: clocks.hclk(),
         };
 
-        let gpioc = dp.GPIOC.split();
-        let mut button = gpioc.pc13.into_pull_up_input().erase();
+        let mut left = gpiob.pb0.into_pull_down_input().erase();
+        let mut right = gpiob.pb1.into_pull_down_input().erase();
+        let mut middle = gpiob.pb12.into_pull_down_input().erase();
+        let mut front = gpioc.pc5.into_pull_down_input().erase();
+        let mut back = gpioc.pc4.into_pull_down_input().erase();
+
+
+        /*
+        loop {
+            if left.is_high() {
+                rprintln!("is high");
+            } else {
+                rprintln!("is low");
+            }
+        }
+        */
+
         let mut sys_cfg = dp.SYSCFG.constrain();
 
-        // Enable interuppts for PC13
-        button.make_interrupt_source(&mut sys_cfg);
-        button.enable_interrupt(&mut dp.EXTI);
-        button.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
+        // Enable interuppts for the buttons
+        left.make_interrupt_source(&mut sys_cfg);
+        left.enable_interrupt(&mut dp.EXTI);
+        left.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
+
+        right.make_interrupt_source(&mut sys_cfg);
+        right.enable_interrupt(&mut dp.EXTI);
+        right.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
+
+        middle.make_interrupt_source(&mut sys_cfg);
+        middle.enable_interrupt(&mut dp.EXTI);
+        middle.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
+
+        front.make_interrupt_source(&mut sys_cfg);
+        front.enable_interrupt(&mut dp.EXTI);
+        front.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
+
+        back.make_interrupt_source(&mut sys_cfg);
+        back.enable_interrupt(&mut dp.EXTI);
+        back.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
 
         cx.local.bus.replace(UsbBus::new(usb, cx.local.EP_MEMORY));
 
@@ -91,24 +129,99 @@ mod app {
                 .device_class(0) // Hid
                 .build();
 
-        (Shared {mouse}, Local { usb_dev, hid, button}, init::Monotonics())
+        (
+            Shared {mouse},
+            Local { usb_dev, hid, left, right, middle, front, back},
+            init::Monotonics()
+        )
     }
 
-    // B1 is connected to PC13
-    #[task(binds=EXTI15_10, local = [button], shared = [mouse])]
-    fn button_pressed(mut cx: button_pressed::Context) {
+    #[task(binds=EXTI15_10, local = [middle], shared = [mouse])]
+    fn middle_hand(mut cx: middle_hand::Context) {
         // this should be automatic
-        cx.local.button.clear_interrupt_pending_bit();
+        cx.local.middle.clear_interrupt_pending_bit();
 
-        if cx.local.button.is_low() {
-            rprintln!("button low");
+        if cx.local.middle.is_low() {
+            rprintln!("middle low");
+            cx.shared.mouse.lock(|mouse| {
+                mouse.push_middle();
+            });
+        } else {
+            rprintln!("middle high");
+            cx.shared.mouse.lock(|mouse| {
+                mouse.release_middle();
+            });
+        }
+    }
+
+    #[task(binds=EXTI0, local = [left], shared = [mouse])]
+    fn left_hand(mut cx: left_hand::Context) {
+        // this should be automatic
+        cx.local.left.clear_interrupt_pending_bit();
+
+        if cx.local.left.is_low() {
+            rprintln!("left low");
             cx.shared.mouse.lock(|mouse| {
                 mouse.push_left();
             });
         } else {
-            rprintln!("button high");
+            rprintln!("left high");
             cx.shared.mouse.lock(|mouse| {
                 mouse.release_left();
+            });
+        }
+    }
+
+    #[task(binds=EXTI1, local = [right], shared = [mouse])]
+    fn right_hand(mut cx: right_hand::Context) {
+        // this should be automatic
+        cx.local.right.clear_interrupt_pending_bit();
+
+        if cx.local.right.is_low() {
+            rprintln!("right low");
+            cx.shared.mouse.lock(|mouse| {
+                mouse.push_right();
+            });
+        } else {
+            rprintln!("right high");
+            cx.shared.mouse.lock(|mouse| {
+                mouse.release_right();
+            });
+        }
+    }
+
+    #[task(binds=EXTI9_5, local = [front], shared = [mouse])]
+    fn front_hand(mut cx: front_hand::Context) {
+        // this should be automatic
+        cx.local.front.clear_interrupt_pending_bit();
+
+        if cx.local.front.is_low() {
+            rprintln!("front low");
+            cx.shared.mouse.lock(|mouse| {
+                //mouse.push_front();
+            });
+        } else {
+            rprintln!("front high");
+            cx.shared.mouse.lock(|mouse| {
+                //mouse.release_front();
+            });
+        }
+    }
+
+    #[task(binds=EXTI4, local = [back], shared = [mouse])]
+    fn back_hand(mut cx: back_hand::Context) {
+        // this should be automatic
+        cx.local.back.clear_interrupt_pending_bit();
+
+        if cx.local.back.is_low() {
+            rprintln!("back low");
+            cx.shared.mouse.lock(|mouse| {
+                //mouse.push_front();
+            });
+        } else {
+            rprintln!("back high");
+            cx.shared.mouse.lock(|mouse| {
+                //mouse.release_front();
             });
         }
     }
@@ -152,30 +265,6 @@ mod app {
         cx.shared.mouse.lock(|mouse| {
             mouse.add_x_movement(mov);
         });
-
-
-        /*
-        let report = MouseReport {
-            x: match *counter {
-                // reached after 100ms
-                100 => {
-                    rprintln!("10");
-                    10
-                }
-                // reached after 200ms
-                0 => {
-                    rprintln!("-10");
-                    -10
-                }
-                _ => 0,
-            },
-            y: 0,
-            // buttons: btn.is_low().unwrap().into(), // (into takes a bool into an integer)
-            buttons: 0,
-            wheel: 0,
-            pan: 0,
-        };
-        */
 
         cx.shared.mouse.lock(|mouse| {
             let report = mouse.get_report_and_reset();

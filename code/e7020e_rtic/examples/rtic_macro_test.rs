@@ -19,17 +19,25 @@ mod app {
     use stm32f4xx_hal::otg_fs::{UsbBus, USB};
     use stm32f4xx_hal::prelude::*;
     use stm32f4xx_hal::gpio::*;
+    use dwt_systick_monotonic::*;
     use usb_device::{bus::UsbBusAllocator, prelude::*};
     use usbd_hid::{
         descriptor::{generator_prelude::*, MouseReport},
         hid_class::HIDClass,
     };
+    use systick_monotonic::*;
 
     use app::hidDescriptors::MouseKeyboard;
     use app::mouseKeyboardReport::MouseKeyboardState;
-    use app::macroSystem::{MacroConfig, Function};
+    use app::macroSystem::{MacroConfig, Function, MacroType, do_function, end_function, MacroSequence};
     
     type Button = ErasedPin<Input<PullUp>>;
+
+    // Default core clock at 16MHz
+    const FREQ_CORE: u32 = 48_000_000;
+
+    #[monotonic(binds = SysTick, default = true)]
+    type MyMono = DwtSystick<FREQ_CORE>; // 16MHz cycle accurate accuracy
 
     #[shared]
     struct Shared {
@@ -52,6 +60,13 @@ mod app {
         rprintln!("init");
         let mut dp = cx.device;
         let cd = cx.core;
+
+        let systick = cx.core.SYST;
+        let mut dcb = cx.core.DCB;
+        let dwt = cx.core.DWT;
+
+        // Initialize the monotonic (SysTick driven by core clock)
+        let mono = DwtSystick::new(&mut dcb, dwt, systick, FREQ_CORE);
 
         let rcc = dp.RCC.constrain();
 
@@ -90,10 +105,13 @@ mod app {
 
         let mut macro_conf = MacroConfig::new();
         macro_conf.update_config(
-            Function::PressKeyboard(0x4), Function::Nothing,
-            Function::Nothing, Function::Nothing,
-            Function::Nothing, Function::Nothing,
-            Function::Nothing
+            MacroType::MacroSingle(Function::PressKeyboard(0x4)),
+            MacroType::MacroSingle(Function::PressKeyboard(0x4)),
+            MacroType::MacroSingle(Function::Nothing),
+            MacroType::MacroSingle(Function::Nothing),
+            MacroType::MacroSingle(Function::Nothing),
+            MacroType::MacroSingle(Function::Nothing),
+            MacroType::MacroSingle(Function::Nothing),
         );
 
         let usb_dev =
@@ -104,7 +122,26 @@ mod app {
                 .device_class(0) // Hid
                 .build();
 
-        (Shared {mouse, macro_conf}, Local { usb_dev, hid, button}, init::Monotonics())
+        (Shared {mouse, macro_conf}, Local { usb_dev, hid, button}, init::Monotonics(mono))
+    }
+
+    #[task(shared = [mouse, macro_conf])]
+    fn do_macro(cx: do_macro::Context, m: &'static MacroSequence, i: u8) {
+    }
+
+    fn handle_macro(m: &'static MacroType, mouse: &mut MouseKeyboardState, is_push: bool) {
+        match m {
+            MacroType::MacroSingle(f) => {
+                match is_push {
+                    true => do_function(*f, mouse),
+                    false => end_function(*f, mouse),
+                }
+            },
+            MacroType::MacroMultiple(s) => {
+                let ms = s.delays[0];
+                do_macro::spawn_after(ms.millis(), s, 0).unwrap();
+            }
+        }
     }
 
     // B1 is connected to PC13
@@ -115,16 +152,16 @@ mod app {
 
         if cx.local.button.is_low() {
             rprintln!("button low");
-            cx.shared.mouse.lock(|mouse| {
-                cx.shared.macro_conf.lock(|macro_conf| {
-                    macro_conf.push_left(mouse);
+            cx.shared.macro_conf.lock(|macro_conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(&macro_conf.right_button, mouse, true);
                 });
             });
+
         } else {
             rprintln!("button high");
-            cx.shared.mouse.lock(|mouse| {
-                cx.shared.macro_conf.lock(|macro_conf| {
-                    macro_conf.release_left(mouse);
+            cx.shared.macro_conf.lock(|macro_conf| {
+                cx.shared.mouse.lock(|mouse| {
                 });
             });
         }

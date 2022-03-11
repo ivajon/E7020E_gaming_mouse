@@ -1,43 +1,44 @@
 use crate::mouseKeyboardReport::MouseKeyboardState;
 
 pub struct MacroConfig {
-    left_button: Function,
-    right_button: Function,
-    middle_button: Function,
-    scroll_up: Function,
-    scroll_down: Function,
-    side_button_front: Function,
-    side_button_back: Function,
+    pub left_button: MacroType,
+    pub right_button: MacroType,
+    pub middle_button: MacroType,
+    pub scroll_up: MacroType,
+    pub scroll_down: MacroType,
+    pub side_button_front: MacroType,
+    pub side_button_back: MacroType,
 }
 
+#[derive(Debug)]
 pub struct MacroSequence {
-    functions: [Function; 5],
-    delays: [u8; 5],
-    hold_times: [u8; 5],
+    pub functions: [Function; 5],
+    pub delays: [u32; 5],
+    pub hold_times: [u32; 5],
 }
 
 impl MacroConfig {
     pub fn new() -> MacroConfig {
         MacroConfig {
-            left_button: Function::LeftClick,
-            right_button: Function::RightClick,
-            middle_button: Function::MiddleClick,
-            scroll_up: Function::ScrollUp,
-            scroll_down: Function::ScrollDown,
-            side_button_front: Function::Nothing,
-            side_button_back: Function::Nothing,
+            left_button: MacroType::MacroSingle(Function::LeftClick),
+            right_button: MacroType::MacroSingle(Function::RightClick),
+            middle_button: MacroType::MacroSingle(Function::MiddleClick),
+            scroll_up: MacroType::MacroSingle(Function::ScrollUp),
+            scroll_down: MacroType::MacroSingle(Function::ScrollDown),
+            side_button_front: MacroType::MacroSingle(Function::Nothing),
+            side_button_back: MacroType::MacroSingle(Function::Nothing),
         }
     }
 
     pub fn update_config(
         &mut self,
-        left_button: Function,
-        right_button: Function,
-        middle_button: Function,
-        scroll_up: Function,
-        scroll_down: Function,
-        side_button_front: Function,
-        side_button_back: Function,
+        left_button: MacroType,
+        right_button: MacroType,
+        middle_button: MacroType,
+        scroll_up: MacroType,
+        scroll_down: MacroType,
+        side_button_front: MacroType,
+        side_button_back: MacroType,
     ) {
         self.left_button = left_button;
         self.right_button = right_button;
@@ -47,58 +48,9 @@ impl MacroConfig {
         self.side_button_front = side_button_front;
         self.side_button_back = side_button_back;
     }
-
-
-    pub fn push_left(&self, mouse: &mut MouseKeyboardState) {
-        do_function(self.left_button, mouse);
-    }
-
-    pub fn push_right(&self, mouse: &mut MouseKeyboardState) {
-        do_function(self.right_button, mouse);
-    }
-
-    pub fn push_middle(&self, mouse: &mut MouseKeyboardState) {
-        do_function(self.middle_button, mouse);
-    }
-
-    pub fn push_side_front(&self, mouse: &mut MouseKeyboardState) {
-        do_function(self.side_button_front, mouse);
-    }
-
-    pub fn push_side_back(&self, mouse: &mut MouseKeyboardState) {
-        do_function(self.side_button_back, mouse);
-    }
-
-    pub fn release_left(&self, mouse: &mut MouseKeyboardState) {
-        end_function(self.left_button, mouse);
-    }
-
-    pub fn release_right(&self, mouse: &mut MouseKeyboardState) {
-        end_function(self.right_button, mouse);
-    }
-
-    pub fn release_middle(&self, mouse: &mut MouseKeyboardState) {
-        end_function(self.middle_button, mouse);
-    }
-
-    pub fn release_side_front(&self, mouse: &mut MouseKeyboardState) {
-        end_function(self.side_button_front, mouse);
-    }
-
-    pub fn release_side_back(&self, mouse: &mut MouseKeyboardState) {
-        end_function(self.side_button_back, mouse);
-    }
-
-    pub fn scroll_up(&self, mouse: &mut MouseKeyboardState) {
-        do_function(self.scroll_up, mouse);
-    }
-
-    pub fn scroll_down(&self, mouse: &mut MouseKeyboardState) {
-        do_function(self.scroll_down, mouse);
-    }
 }
 
-fn do_function(f: Function, mouse: &mut MouseKeyboardState) {
+pub fn do_function(f: Function, mouse: &mut MouseKeyboardState) {
     match f {
         Function::LeftClick => {
             mouse.push_left();
@@ -122,7 +74,7 @@ fn do_function(f: Function, mouse: &mut MouseKeyboardState) {
     }
 }
 
-fn end_function(f: Function, mouse: &mut MouseKeyboardState) {
+pub fn end_function(f: Function, mouse: &mut MouseKeyboardState) {
     match f {
         Function::LeftClick => {
             mouse.release_left();
@@ -140,7 +92,12 @@ fn end_function(f: Function, mouse: &mut MouseKeyboardState) {
     }
 }
 
-#[derive(Copy, Clone)]
+pub enum MacroType {
+    MacroMultiple(MacroSequence),
+    MacroSingle(Function),
+}
+
+#[derive(Copy, Clone, Debug)]
 pub enum Function {
     LeftClick,
     RightClick,
@@ -149,7 +106,5 @@ pub enum Function {
     ScrollDown,
     PressKeyboard(u8),
     Nothing,
-    Macro1,
-    Macro2,
-    Macro3,
+    End,
 }
