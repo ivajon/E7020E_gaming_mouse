@@ -1,3 +1,4 @@
 schematics_and_pcb/schematics_and_pcb-backups
 schematics_and_pcb/schematics_and_pcb-backups/*
 schematics_and_pcb/schematics_and_pcb-backups/**
+code/e7020e_rtic/target/**
