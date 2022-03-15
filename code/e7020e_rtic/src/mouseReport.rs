@@ -20,6 +20,9 @@ impl MouseState {
             middle_button: false
         }
     }
+    pub fn get_middle_state(&self) -> bool {
+        self.middle_button
+    }
 
     pub fn add_x_movement(&mut self, to_add: i8) {
         let result = self.x + to_add;

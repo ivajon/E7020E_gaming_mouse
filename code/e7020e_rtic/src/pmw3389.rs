@@ -155,6 +155,7 @@ where
 
         pmw3389.upload_firmware()?;
 
+
         // wait for firmware to start, not sure how long?
         pmw3389.delay.delay_us(50_000); // 50ms
 

@@ -62,6 +62,9 @@ mod app {
         middle: Button,
         front: Button,
         back: Button,
+        phase_a : Button,
+        phase_b : Button,
+        motion : Button
     }
 
     const POLL_INTERVAL_MS: u8 = 1;
@@ -97,8 +100,10 @@ mod app {
         let cs: CS = gpioa.pa4.into_push_pull_output().set_speed(Speed::High);
         let spi: SPI = Spi::new(dp.SPI1, (sck, miso, mosi), MODE_3, 1.MHz(), &clocks);
         let delay: DELAY = dp.TIM5.delay_us(&clocks);
-
-        let pmw3389: PMW3389 = Pmw3389::new(spi, cs, delay).unwrap();
+        let mut pmw3389: PMW3389 = Pmw3389::new(spi, cs, delay).unwrap();
+        let mut motion = gpiob.pb13.into_pull_down_input().erase();
+        let mut phase_a = gpiob.pb2.into_pull_down_input().erase();
+        let mut phase_b = gpioc.pc9.into_pull_down_input().erase();
         let mut left = gpiob.pb0.into_pull_down_input().erase();
         let mut right = gpiob.pb1.into_pull_down_input().erase();
         let mut middle = gpiob.pb12.into_pull_down_input().erase();
@@ -106,6 +111,7 @@ mod app {
         let mut back = gpioc.pc4.into_pull_down_input().erase();
 
 
+        pmw3389.set_cpi(800).unwrap();
         /*
         loop {
             if left.is_high() {
@@ -117,7 +123,17 @@ mod app {
         */
 
         let mut sys_cfg = dp.SYSCFG.constrain();
-
+        // enable mouse sensor motion interrupt
+        motion.make_interrupt_source(&mut sys_cfg);
+        motion.enable_interrupt(&mut dp.EXTI);
+        motion.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
+        // enable scroll wheel
+        phase_a.make_interrupt_source(&mut sys_cfg);
+        phase_b.make_interrupt_source(&mut sys_cfg);
+        phase_a.enable_interrupt(&mut dp.EXTI);
+        phase_b.enable_interrupt(&mut dp.EXTI);
+        phase_a.trigger_on_edge(&mut dp.EXTI, Edge::Rising);
+        phase_b.trigger_on_edge(&mut dp.EXTI, Edge::Rising);
         // Enable interuppts for the buttons
         left.make_interrupt_source(&mut sys_cfg);
         left.enable_interrupt(&mut dp.EXTI);
@@ -159,27 +175,39 @@ mod app {
 
         (
             Shared {mouse},
-            Local { pmw3389,usb_dev, hid, left, right, middle, front, back},
+            Local { pmw3389,usb_dev, hid, left, right, middle, front, back, phase_a,phase_b,motion},
             init::Monotonics()
         )
     }
-
-    #[task(binds=EXTI15_10, local = [middle], shared = [mouse])]
+    #[task(binds=EXTI15_10, local = [middle,motion,pmw3389], shared = [mouse])]
     fn middle_hand(mut cx: middle_hand::Context) {
         // this should be automatic
         cx.local.middle.clear_interrupt_pending_bit();
-
-        if cx.local.middle.is_low() {
-            rprintln!("middle low");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.push_middle();
-            });
-        } else {
-            rprintln!("middle high");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.release_middle();
-            });
+        cx.local.motion.clear_interrupt_pending_bit();
+        if cx.local.motion.is_low() {
+            let status = cx.local.pmw3389.read_status().unwrap();
+            rprintln!(" dx, dy = {:?}", status);
+            if status.dx!=0 || status.dy!=0
+            {
+                cx.shared.mouse.lock(|mouse| {
+                    mouse.add_x_movement(status.dx as i8 );
+                    mouse.add_y_movement(status.dy as i8);
+                });   
+            }
         }
+        else{
+            if cx.local.middle.is_low() {
+                rprintln!("middle low");
+                cx.shared.mouse.lock(|mouse| {
+                    mouse.push_middle();
+                });
+            } else if cx.local.middle.is_high() {
+                rprintln!("middle high");
+                cx.shared.mouse.lock(|mouse| {
+                    mouse.release_middle();
+                });
+            }
+        } 
     }
 
     #[task(binds=EXTI0, local = [left], shared = [mouse])]
@@ -274,28 +302,7 @@ mod app {
             *first = false;
         }
 
-        /*// wraps around after 200ms
-        *counter = (*counter + 1) % 200;
-        let mov = match *counter {
-            // reached after 100ms
-            100 => {
-                rprintln!("10");
-                10
-            }
-            // reached after 200ms
-            0 => {
-                rprintln!("-10");
-                -10
-            }
-            _ => 0,
-        };
-
-        cx.shared.mouse.lock(|mouse| {
-            mouse.add_x_movement(mov);
-        });
-
-        */
-
+        
         cx.shared.mouse.lock(|mouse| {
             let report = mouse.get_report_and_reset();
             // push the report
@@ -307,6 +314,7 @@ mod app {
             return;
         }
     }
+    /*
     #[idle(local = [pmw3389],shared = [mouse])]
     fn idle(mut cx: idle::Context) -> ! {
         let pmw3389 = cx.local.pmw3389;
@@ -332,12 +340,10 @@ mod app {
         // Check if any measurement exceeds 10% of i16::MAX, this
         // should give you immense headroom, when setting the dpi.
         //
-        pmw3389.set_cpi(800).unwrap();
         let mut x_acc: i32 = 0;
         loop {
-            let status = pmw3389.read_status().unwrap();
-            x_acc += status.dx as i32;
-            //rprintln!("acc {} dx, dy = {:?}", x_acc, status);
+            let status = cx.local.pmw3389.read_status().unwrap();
+            rprintln!(" dx, dy = {:?}", status);
             if status.dx!=0 || status.dy!=0
             {
                 cx.shared.mouse.lock(|mouse| {
@@ -345,6 +351,9 @@ mod app {
                     mouse.add_y_movement(status.dy as i8);
                 });   
             }
+            
         }
     }
+    */
+    
 }
