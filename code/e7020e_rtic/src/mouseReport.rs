@@ -87,9 +87,6 @@ impl MouseState {
         self.x = 0;
         self.y = 0;
         self.wheel = 0;
-        self.left_button = false;
-        self.right_button = false;
-        self.middle_button = false;
     }
 
     pub fn get_report_and_reset(&mut self) -> MouseReport{
