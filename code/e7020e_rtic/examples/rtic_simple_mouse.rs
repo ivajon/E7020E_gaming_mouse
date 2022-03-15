@@ -48,13 +48,13 @@ mod app {
     type PMW3389 = Pmw3389<SPI, CS, DELAY>;
     #[shared]
     struct Shared {
-        mouse: MouseState
+        mouse: MouseState,
+        pmw3389: PMW3389
 
     }
 
     #[local]
     struct Local {
-        pmw3389: PMW3389,
         usb_dev: UsbDevice<'static, UsbBus<USB>>,
         hid: HIDClass<'static, UsbBus<USB>>,
         left: Button,
@@ -111,7 +111,7 @@ mod app {
         let mut back = gpioc.pc4.into_pull_down_input().erase();
 
 
-        pmw3389.set_cpi(800).unwrap();
+        pmw3389.set_cpi().unwrap();
         /*
         loop {
             if left.is_high() {
@@ -123,10 +123,6 @@ mod app {
         */
 
         let mut sys_cfg = dp.SYSCFG.constrain();
-        // enable mouse sensor motion interrupt
-        motion.make_interrupt_source(&mut sys_cfg);
-        motion.enable_interrupt(&mut dp.EXTI);
-        motion.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
         // enable scroll wheel
         phase_a.make_interrupt_source(&mut sys_cfg);
         phase_b.make_interrupt_source(&mut sys_cfg);
@@ -167,47 +163,34 @@ mod app {
 
         let usb_dev =
             UsbDeviceBuilder::new(cx.local.bus.as_ref().unwrap(), UsbVidPid(0xc410, 0x0000))
-                .manufacturer("e7020e")
-                .product("Mouse")
-                .serial_number("1337")
+                .manufacturer("Ivar och Erik")
+                .product("Banger gaming mus")
+                .serial_number("1234")
                 .device_class(0) // Hid
                 .build();
 
         (
-            Shared {mouse},
-            Local { pmw3389,usb_dev, hid, left, right, middle, front, back, phase_a,phase_b,motion},
+            Shared {mouse,pmw3389},
+            Local { usb_dev, hid, left, right, middle, front, back, phase_a,phase_b,motion},
             init::Monotonics()
         )
     }
-    #[task(binds=EXTI15_10, local = [middle,motion,pmw3389], shared = [mouse])]
+    #[task(binds=EXTI15_10, local = [middle,motion], shared = [mouse])]
     fn middle_hand(mut cx: middle_hand::Context) {
         // this should be automatic
         cx.local.middle.clear_interrupt_pending_bit();
-        cx.local.motion.clear_interrupt_pending_bit();
-        if cx.local.motion.is_low() {
-            let status = cx.local.pmw3389.read_status().unwrap();
-            rprintln!(" dx, dy = {:?}", status);
-            if status.dx!=0 || status.dy!=0
-            {
-                cx.shared.mouse.lock(|mouse| {
-                    mouse.add_x_movement(status.dx as i8 );
-                    mouse.add_y_movement(status.dy as i8);
-                });   
-            }
-        }
-        else{
-            if cx.local.middle.is_low() {
+        
+        if cx.local.middle.is_low() {
                 rprintln!("middle low");
                 cx.shared.mouse.lock(|mouse| {
-                    mouse.push_middle();
                 });
             } else if cx.local.middle.is_high() {
                 rprintln!("middle high");
                 cx.shared.mouse.lock(|mouse| {
-                    mouse.release_middle();
+                    mouse.push_middle();
                 });
-            }
-        } 
+        }
+        
     }
 
     #[task(binds=EXTI0, local = [left], shared = [mouse])]
@@ -218,12 +201,12 @@ mod app {
         if cx.local.left.is_low() {
             rprintln!("left low");
             cx.shared.mouse.lock(|mouse| {
-                mouse.push_left();
+                mouse.release_left();
             });
         } else {
             rprintln!("left high");
             cx.shared.mouse.lock(|mouse| {
-                mouse.release_left();
+                mouse.push_left();
             });
         }
     }
@@ -236,35 +219,37 @@ mod app {
         if cx.local.right.is_low() {
             rprintln!("right low");
             cx.shared.mouse.lock(|mouse| {
-                mouse.push_right();
+                mouse.release_right();
             });
         } else {
             rprintln!("right high");
             cx.shared.mouse.lock(|mouse| {
-                mouse.release_right();
+                mouse.push_right();
             });
         }
     }
 
-    #[task(binds=EXTI9_5, local = [front], shared = [mouse])]
+    #[task(binds=EXTI9_5, local = [front], shared = [mouse,pmw3389])]
     fn front_hand(mut cx: front_hand::Context) {
         // this should be automatic
         cx.local.front.clear_interrupt_pending_bit();
 
         if cx.local.front.is_low() {
-            rprintln!("front low");
             cx.shared.mouse.lock(|mouse| {
-                //mouse.push_front();
+                
             });
         } else {
             rprintln!("front high");
             cx.shared.mouse.lock(|mouse| {
-                //mouse.release_front();
+                cx.shared.pmw3389.lock(|pmw3389| {
+                    pmw3389.increment_cpi(1);
+                });
+                //mouse.push_front();
             });
         }
     }
 
-    #[task(binds=EXTI4, local = [back], shared = [mouse])]
+    #[task(binds=EXTI4, local = [back], shared = [mouse,pmw3389])]
     fn back_hand(mut cx: back_hand::Context) {
         // this should be automatic
         cx.local.back.clear_interrupt_pending_bit();
@@ -272,12 +257,16 @@ mod app {
         if cx.local.back.is_low() {
             rprintln!("back low");
             cx.shared.mouse.lock(|mouse| {
-                //mouse.push_front();
+                cx.shared.pmw3389.lock(|pmw3389| {
+                    pmw3389.increment_cpi(-1);
+                });
+                //mouse.release_front();
             });
         } else {
-            rprintln!("back high");
+            //rprintln!("back high");
             cx.shared.mouse.lock(|mouse| {
-                //mouse.release_front();
+                
+                //mouse.push_front();
             });
         }
     }
@@ -314,10 +303,8 @@ mod app {
             return;
         }
     }
-    /*
-    #[idle(local = [pmw3389],shared = [mouse])]
+    #[idle(shared = [mouse,pmw3389])]
     fn idle(mut cx: idle::Context) -> ! {
-        let pmw3389 = cx.local.pmw3389;
         // This is just an example that measures the drift in a test rig
         // it polls the sensor at 10Hz, you can do it much quicker as well.
         //
@@ -340,20 +327,28 @@ mod app {
         // Check if any measurement exceeds 10% of i16::MAX, this
         // should give you immense headroom, when setting the dpi.
         //
-        let mut x_acc: i32 = 0;
         loop {
-            let status = cx.local.pmw3389.read_status().unwrap();
-            rprintln!(" dx, dy = {:?}", status);
-            if status.dx!=0 || status.dy!=0
-            {
-                cx.shared.mouse.lock(|mouse| {
-                    mouse.add_x_movement(status.dx as i8 );
-                    mouse.add_y_movement(status.dy as i8);
-                });   
-            }
+            let status   = cx.shared.pmw3389.lock(|pmw3389| {
+                pmw3389.read_status()
+            });
+            match status{
+                Ok(status) => {
+                    if status.dx!=0 || status.dy!=0
+                    {
+                        cx.shared.mouse.lock(|mouse| {
+                            mouse.add_x_movement(status.dx as i8 );
+                            mouse.add_y_movement(status.dy as i8);
+                        });   
+                    }
+                },
+                Err(e) => {
+                    rprintln!("{:?}",e);
+                }
+            } 
+            
             
         }
     }
-    */
+    
     
 }

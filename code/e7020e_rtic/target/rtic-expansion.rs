@@ -2,48 +2,89 @@
 {
     #[doc =
       r" Always include the device crate which contains the vector table"] use
-    stm32f4 :: stm32f411 as
-    you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml ; use
-    rtt_target :: { rprintln, rtt_init_print } ; use stm32f4xx_hal :: gpio ::
-    * ; use stm32f4xx_hal ::
-    { prelude :: *, serial :: { config :: Config, Event, Rx, Serial, Tx }, } ;
-    use nb :: block ; use stm32f4 :: stm32f411 :: USART2 ;
-    #[doc = r" User code from within the module"] #[doc = r" User code end"]
-    #[inline(always)] #[allow(non_snake_case)] fn init(cx : init :: Context)
-    -> (Shared, Local, init :: Monotonics)
+    stm32f4 :: stm32f401 as
+    you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml ; pub use
+    rtic :: Monotonic as _ ;
+    #[doc = r" Holds static methods for each monotonic."] pub mod monotonics
     {
-        rtt_init_print! () ; rprintln! ("init") ; let device = cx.device ; let
-        pa = device.GPIOA.split() ; let tx_pin = pa.pa2.into_alternate :: < 7
-        > () ; let rx_pin = pa.pa3.into_alternate :: < 7 > () ; let rcc =
-        device.RCC.constrain() ; let clocks = rcc.cfgr.freeze() ; let mut
-        serial : Serial < USART2, _ > = Serial ::
-        new(device.USART2, (tx_pin, rx_pin), Config ::
-            default().baudrate(115_200.bps()), & clocks,).unwrap() ;
-        serial.listen(Event :: Rxne) ; let(tx, rx) = serial.split() ;
-        (Shared { tx, rx }, Local { }, init :: Monotonics())
-    } #[allow(non_snake_case)] fn idle(_cx : idle :: Context) ->!
+        pub use MyMono :: now ;
+        #[doc =
+          "This module holds the static implementation for `MyMono::now()`"]
+        #[allow(non_snake_case)] pub mod MyMono
+        {
+            #[doc = r" Read the current time from this monotonic"] pub fn
+            now() -> < super :: super :: MyMono as rtic :: Monotonic > ::
+            Instant
+            {
+                rtic :: export :: interrupt ::
+                free(| _ |
+                     {
+                         use rtic :: Monotonic as _ ; if let Some(m) = unsafe
+                         {
+                             & mut * super :: super ::
+                             __rtic_internal_MONOTONIC_STORAGE_MyMono.get_mut()
+                         } { m.now() } else
+                         {
+                             < super :: super :: MyMono as rtic :: Monotonic >
+                             :: zero()
+                         }
+                     })
+            }
+        }
+    } use app :: pmw3389 :: Pmw3389 ; use dwt_systick_monotonic :: * ; use
+    embedded_hal :: spi :: MODE_3 ; use rtt_target ::
+    { rprintln, rtt_init_print } ; use stm32f4xx_hal ::
     {
-        use rtic :: Mutex as _ ; use rtic :: mutex_prelude :: * ; rprintln!
-        ("idle") ; loop { }
-    } #[allow(non_snake_case)] fn usart2(cx : usart2 :: Context)
+        gpio :: { Alternate, Output, Pin, PushPull, Speed }, prelude :: *, spi
+        :: { Spi, TransferModeNormal }, timer :: Delay,
+    } ; use stm32f4 :: stm32f401 :: { SPI1, TIM5 } ;
+    #[doc = r" User code from within the module"] type SCK = Pin < Alternate <
+    PushPull, 5_u8 >, 'A', 5_u8 > ; type MOSI = Pin < Alternate < PushPull,
+    5_u8 >, 'A', 7_u8 > ; type MISO = Pin < Alternate < PushPull, 5_u8 >, 'A',
+    6_u8 > ; type CS = Pin < Output < PushPull >, 'A', 4_u8 > ; type SPI = Spi
+    < SPI1, (SCK, MISO, MOSI), TransferModeNormal > ; type DELAY = Delay <
+    TIM5, 1000000_u32 > ; type PMW3389 = Pmw3389 < SPI, CS, DELAY > ; const
+    FREQ_CORE : u32 = 48_000_000 ; type MyMono = DwtSystick < FREQ_CORE > ;
+    #[doc = r" User code end"] #[inline(always)] #[allow(non_snake_case)] fn
+    init(cx : init :: Context) -> (Shared, Local, init :: Monotonics)
     {
-        use rtic :: Mutex as _ ; use rtic :: mutex_prelude :: * ; let rx =
-        cx.shared.rx ; let data = rx.read().unwrap() ; worker ::
-        spawn(data).unwrap() ;
-    } #[allow(non_snake_case)] fn worker(cx : worker :: Context, data : u8)
+        rtt_init_print! () ; rprintln! ("init") ; let systick = cx.core.SYST ;
+        let mut dcb = cx.core.DCB ; let dwt = cx.core.DWT ; let device =
+        cx.device ; let rcc = device.RCC ; let clocks =
+        rcc.constrain().cfgr.sysclk(48.MHz()).freeze() ; let _mono =
+        DwtSystick :: new(& mut dcb, dwt, systick, clocks.sysclk().raw()) ;
+        let delay : DELAY = device.TIM5.delay_us(& clocks) ; let gpioa =
+        device.GPIOA.split() ; let gpioc = device.GPIOC.split() ; let sck :
+        SCK = gpioa.pa5.into_alternate().set_speed(Speed :: VeryHigh) ; let
+        miso : MISO = gpioa.pa6.into_alternate().set_speed(Speed :: High) ;
+        let mosi : MOSI = gpioa.pa7.into_alternate().set_speed(Speed :: High)
+        ; let cs : CS =
+        gpioa.pa4.into_push_pull_output().set_speed(Speed :: High) ; let spi :
+        SPI = Spi ::
+        new(device.SPI1, (sck, miso, mosi), MODE_3, 1.MHz(), & clocks) ; let
+        pmw3389 : PMW3389 = Pmw3389 :: new(spi, cs, delay).unwrap() ;
+        (Shared { }, Local { pmw3389 }, init :: Monotonics(_mono))
+    } #[allow(non_snake_case)] fn idle(cx : idle :: Context) ->!
     {
-        use rtic :: Mutex as _ ; use rtic :: mutex_prelude :: * ; let tx =
-        cx.shared.tx ; tx.write(data).unwrap() ; rprintln! ("data {}", data) ;
-    } struct Shared { tx : Tx < USART2 >, rx : Rx < USART2 >, } struct Local
-    { } #[doc = r" Monotonics used by the system"] #[allow(non_snake_case)]
-    #[allow(non_camel_case_types)] pub struct __rtic_internal_Monotonics() ;
+        use rtic :: Mutex as _ ; use rtic :: mutex_prelude :: * ; let pmw3389
+        = cx.local.pmw3389 ; pmw3389.set_cpi(8000).unwrap() ; let mut x_acc :
+        i32 = 0 ; loop
+        {
+            let status = pmw3389.read_status().unwrap() ; x_acc += status.dx
+            as i32 ; rprintln! ("acc {} dx, dy = {:?}", x_acc, status) ;
+            pmw3389.delay.delay_ms(100_u32) ;
+        }
+    } struct Shared { } struct Local { pmw3389 : PMW3389, }
+    #[doc = r" Monotonics used by the system"] #[allow(non_snake_case)]
+    #[allow(non_camel_case_types)] pub struct
+    __rtic_internal_Monotonics(pub DwtSystick < FREQ_CORE >) ;
     #[doc = r" Execution context"] #[allow(non_snake_case)]
     #[allow(non_camel_case_types)] pub struct __rtic_internal_init_Context <
     'a >
     {
         #[doc = r" Core (Cortex-M) peripherals"] pub core : rtic :: export ::
         Peripherals, #[doc = r" Device peripherals"] pub device : stm32f4 ::
-        stm32f411 :: Peripherals, #[doc = r" Critical section token for init"]
+        stm32f401 :: Peripherals, #[doc = r" Critical section token for init"]
         pub cs : rtic :: export :: CriticalSection < 'a >,
     } impl < 'a > __rtic_internal_init_Context < 'a >
     {
@@ -52,7 +93,7 @@
         {
             __rtic_internal_init_Context
             {
-                device : stm32f4 :: stm32f411 :: Peripherals :: steal(), cs :
+                device : stm32f4 :: stm32f401 :: Peripherals :: steal(), cs :
                 rtic :: export :: CriticalSection :: new(), core,
             }
         }
@@ -60,304 +101,117 @@
     {
         pub use super :: __rtic_internal_Monotonics as Monotonics ; pub use
         super :: __rtic_internal_init_Context as Context ;
-    } #[doc = r" Execution context"] #[allow(non_snake_case)]
-    #[allow(non_camel_case_types)] pub struct __rtic_internal_idle_Context < >
-    { } impl < > __rtic_internal_idle_Context < >
+    } #[allow(non_snake_case)] #[allow(non_camel_case_types)]
+    #[doc = "Local resources `idle` has access to"] pub struct
+    __rtic_internal_idleLocalResources < >
+    { pub pmw3389 : & 'static mut PMW3389, } #[doc = r" Execution context"]
+    #[allow(non_snake_case)] #[allow(non_camel_case_types)] pub struct
+    __rtic_internal_idle_Context < >
+    {
+        #[doc = r" Local Resources this task has access to"] pub local : idle
+        :: LocalResources < >,
+    } impl < > __rtic_internal_idle_Context < >
     {
         #[inline(always)] pub unsafe fn
         new(priority : & rtic :: export :: Priority) -> Self
-        { __rtic_internal_idle_Context { } }
+        {
+            __rtic_internal_idle_Context
+            { local : idle :: LocalResources :: new(), }
+        }
     } #[allow(non_snake_case)] #[doc = "Idle loop"] pub mod idle
-    { pub use super :: __rtic_internal_idle_Context as Context ; }
-    #[allow(non_snake_case)] #[allow(non_camel_case_types)]
-    #[doc = "Shared resources `usart2` has access to"] pub struct
-    __rtic_internal_usart2SharedResources < 'a >
-    { pub rx : & 'a mut Rx < USART2 >, } #[doc = r" Execution context"]
-    #[allow(non_snake_case)] #[allow(non_camel_case_types)] pub struct
-    __rtic_internal_usart2_Context < 'a >
     {
-        #[doc = r" Shared Resources this task has access to"] pub shared :
-        usart2 :: SharedResources < 'a >,
-    } impl < 'a > __rtic_internal_usart2_Context < 'a >
+        #[doc(inline)] pub use super :: __rtic_internal_idleLocalResources as
+        LocalResources ; pub use super :: __rtic_internal_idle_Context as
+        Context ;
+    } #[doc = r" app module"] impl < > __rtic_internal_idleLocalResources < >
     {
-        #[inline(always)] pub unsafe fn
-        new(priority : & 'a rtic :: export :: Priority) -> Self
+        #[inline(always)] pub unsafe fn new() -> Self
         {
-            __rtic_internal_usart2_Context
-            { shared : usart2 :: SharedResources :: new(priority), }
-        }
-    } #[allow(non_snake_case)] #[doc = "Hardware task"] pub mod usart2
-    {
-        #[doc(inline)] pub use super :: __rtic_internal_usart2SharedResources
-        as SharedResources ; pub use super :: __rtic_internal_usart2_Context
-        as Context ;
-    } #[allow(non_snake_case)] #[allow(non_camel_case_types)]
-    #[doc = "Shared resources `worker` has access to"] pub struct
-    __rtic_internal_workerSharedResources < 'a >
-    { pub tx : & 'a mut Tx < USART2 >, } #[doc = r" Execution context"]
-    #[allow(non_snake_case)] #[allow(non_camel_case_types)] pub struct
-    __rtic_internal_worker_Context < 'a >
-    {
-        #[doc = r" Shared Resources this task has access to"] pub shared :
-        worker :: SharedResources < 'a >,
-    } impl < 'a > __rtic_internal_worker_Context < 'a >
-    {
-        #[inline(always)] pub unsafe fn
-        new(priority : & 'a rtic :: export :: Priority) -> Self
-        {
-            __rtic_internal_worker_Context
-            { shared : worker :: SharedResources :: new(priority), }
-        }
-    } #[doc = r" Spawns the task directly"] pub fn
-    __rtic_internal_worker_spawn(_0 : u8,) -> Result < (), u8 >
-    {
-        let input = _0 ; unsafe
-        {
-            if let Some(index) = rtic :: export :: interrupt ::
-            free(| _ |
-                 (& mut * __rtic_internal_worker_FQ.get_mut()).dequeue())
+            __rtic_internal_idleLocalResources
             {
+                pmw3389 : & mut *
                 (& mut *
-                 __rtic_internal_worker_INPUTS.get_mut()).get_unchecked_mut(usize
-                                                                            ::
-                                                                            from(index)).as_mut_ptr().write(input)
-                ; rtic :: export :: interrupt ::
-                free(| _ |
-                     {
-                         (& mut *
-                          __rtic_internal_P1_RQ.get_mut()).enqueue_unchecked((P1_T
-                                                                              ::
-                                                                              worker,
-                                                                              index))
-                         ;
-                     }) ; rtic ::
-                pend(stm32f4 :: stm32f411 :: interrupt :: EXTI0) ; Ok(())
-            } else { Err(input) }
-        }
-    } #[allow(non_snake_case)] #[doc = "Software task"] pub mod worker
-    {
-        #[doc(inline)] pub use super :: __rtic_internal_workerSharedResources
-        as SharedResources ; pub use super :: __rtic_internal_worker_Context
-        as Context ; pub use super :: __rtic_internal_worker_spawn as spawn ;
-    } #[doc = r" app module"] #[allow(non_camel_case_types)]
-    #[allow(non_upper_case_globals)] #[doc(hidden)]
-    #[link_section = ".uninit.rtic13218"] static
-    __rtic_internal_shared_resource_tx : rtic :: RacyCell < core :: mem ::
-    MaybeUninit < Tx < USART2 > >> = rtic :: RacyCell ::
-    new(core :: mem :: MaybeUninit :: uninit()) ;
-    #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
-    #[doc(hidden)] #[link_section = ".uninit.rtic13219"] static
-    __rtic_internal_shared_resource_rx : rtic :: RacyCell < core :: mem ::
-    MaybeUninit < Rx < USART2 > >> = rtic :: RacyCell ::
-    new(core :: mem :: MaybeUninit :: uninit()) ; #[allow(non_snake_case)]
-    #[no_mangle] unsafe fn USART2()
-    {
-        const PRIORITY : u8 = 2u8 ; rtic :: export ::
-        run(PRIORITY, ||
-            {
-                usart2(usart2 :: Context ::
-                       new(& rtic :: export :: Priority :: new(PRIORITY)))
-            }) ;
-    } impl < 'a > __rtic_internal_usart2SharedResources < 'a >
-    {
-        #[inline(always)] pub unsafe fn
-        new(priority : & 'a rtic :: export :: Priority) -> Self
-        {
-            __rtic_internal_usart2SharedResources
-            {
-                rx : & mut *
-                (& mut *
-                 __rtic_internal_shared_resource_rx.get_mut()).as_mut_ptr(),
+                 __rtic_internal_local_resource_pmw3389.get_mut()).as_mut_ptr(),
             }
         }
     } #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
-    #[doc(hidden)] static __rtic_internal_worker_FQ : rtic :: RacyCell < rtic
-    :: export :: SCFQ < 129 > > = rtic :: RacyCell ::
-    new(rtic :: export :: Queue :: new()) ;
-    #[link_section = ".uninit.rtic13220"] #[allow(non_camel_case_types)]
-    #[allow(non_upper_case_globals)] #[doc(hidden)] static
-    __rtic_internal_worker_INPUTS : rtic :: RacyCell <
-    [core :: mem :: MaybeUninit < u8 > ; 128] > = rtic :: RacyCell ::
-    new([core :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
-         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
-         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
-         uninit(), core :: mem :: MaybeUninit :: uninit(),]) ; impl < 'a >
-    __rtic_internal_workerSharedResources < 'a >
-    {
-        #[inline(always)] pub unsafe fn
-        new(priority : & 'a rtic :: export :: Priority) -> Self
-        {
-            __rtic_internal_workerSharedResources
-            {
-                tx : & mut *
-                (& mut *
-                 __rtic_internal_shared_resource_tx.get_mut()).as_mut_ptr(),
-            }
-        }
-    } #[allow(non_snake_case)] #[allow(non_camel_case_types)]
-    #[derive(Clone, Copy)] #[doc(hidden)] pub enum P1_T { worker, }
+    #[doc(hidden)] #[link_section = ".uninit.rtic0"] static
+    __rtic_internal_local_resource_pmw3389 : rtic :: RacyCell < core :: mem ::
+    MaybeUninit < PMW3389 >> = rtic :: RacyCell ::
+    new(core :: mem :: MaybeUninit :: uninit()) ; #[doc(hidden)]
+    #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)] static
+    __rtic_internal_TIMER_QUEUE_MARKER : rtic :: RacyCell < u32 > = rtic ::
+    RacyCell :: new(0) ; #[doc(hidden)] #[allow(non_camel_case_types)]
+    #[derive(Clone, Copy)] pub enum SCHED_T { } #[doc(hidden)]
+    #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)] static
+    __rtic_internal_TQ_MyMono : rtic :: RacyCell < rtic :: export ::
+    TimerQueue < DwtSystick < FREQ_CORE >, SCHED_T, 0 > > = rtic :: RacyCell
+    ::
+    new(rtic :: export ::
+        TimerQueue(rtic :: export :: SortedLinkedList :: new_u16())) ;
     #[doc(hidden)] #[allow(non_camel_case_types)]
-    #[allow(non_upper_case_globals)] static __rtic_internal_P1_RQ : rtic ::
-    RacyCell < rtic :: export :: SCRQ < P1_T, 129 > > = rtic :: RacyCell ::
-    new(rtic :: export :: Queue :: new()) ; #[allow(non_snake_case)]
-    #[doc = "Interrupt handler to dispatch tasks at priority 1"] #[no_mangle]
-    unsafe fn EXTI0()
+    #[allow(non_upper_case_globals)] static
+    __rtic_internal_MONOTONIC_STORAGE_MyMono : rtic :: RacyCell < Option <
+    DwtSystick < FREQ_CORE > >> = rtic :: RacyCell :: new(None) ; #[no_mangle]
+    #[allow(non_snake_case)] unsafe fn SysTick()
     {
-        #[doc = r" The priority of this interrupt handler"] const PRIORITY :
-        u8 = 1u8 ; rtic :: export ::
-        run(PRIORITY, ||
-            {
-                while let Some((task, index)) =
-                (& mut * __rtic_internal_P1_RQ.get_mut()).split().1.dequeue()
-                {
-                    match task
-                    {
-                        P1_T :: worker =>
-                        {
-                            let _0 =
-                            (& *
-                             __rtic_internal_worker_INPUTS.get()).get_unchecked(usize
-                                                                                ::
-                                                                                from(index)).as_ptr().read()
-                            ;
-                            (& mut *
-                             __rtic_internal_worker_FQ.get_mut()).split().0.enqueue_unchecked(index)
-                            ; let priority = & rtic :: export :: Priority ::
-                            new(PRIORITY) ;
-                            worker(worker :: Context :: new(priority), _0)
-                        }
-                    }
-                }
-            }) ;
+        while let Some((task, index)) = rtic :: export :: interrupt ::
+        free(| _ | if let Some(mono) =
+             (& mut *
+              __rtic_internal_MONOTONIC_STORAGE_MyMono.get_mut()).as_mut()
+             {
+                 (& mut *
+                  __rtic_internal_TQ_MyMono.get_mut()).dequeue(|| core :: mem
+                                                               :: transmute ::
+                                                               < _, rtic ::
+                                                               export :: SYST
+                                                               >
+                                                               (()).disable_interrupt(),
+                                                               mono)
+             } else { core :: hint :: unreachable_unchecked() })
+        { match task { } } rtic :: export :: interrupt ::
+        free(| _ | if let Some(mono) =
+             (& mut *
+              __rtic_internal_MONOTONIC_STORAGE_MyMono.get_mut()).as_mut()
+             { mono.on_interrupt() ; }) ;
     } #[doc(hidden)] mod rtic_ext
     {
         use super :: * ; #[no_mangle] unsafe extern "C" fn main() ->!
         {
-            rtic :: export :: assert_send :: < Tx < USART2 > > () ; rtic ::
-            export :: assert_send :: < Rx < USART2 > > () ; rtic :: export ::
-            assert_send :: < u8 > () ; rtic :: export :: interrupt ::
-            disable() ;
-            (0 ..
-             128u8).for_each(| i |
-                             (& mut *
-                              __rtic_internal_worker_FQ.get_mut()).enqueue_unchecked(i))
-            ; let mut core : rtic :: export :: Peripherals = rtic :: export ::
-            Peripherals :: steal().into() ; let _ =
-            you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml ::
-            interrupt :: EXTI0 ; let _ =
+            rtic :: export :: assert_monotonic :: < DwtSystick < FREQ_CORE > >
+            () ; rtic :: export :: interrupt :: disable() ; let mut core :
+            rtic :: export :: Peripherals = rtic :: export :: Peripherals ::
+            steal().into() ; let _ =
             [() ;
-             ((1 << stm32f4 :: stm32f411 :: NVIC_PRIO_BITS) - 1u8 as usize)] ;
-            core.NVIC.set_priority(you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml
-                                   :: interrupt :: EXTI0, rtic :: export ::
-                                   logical2hw(1u8, stm32f4 :: stm32f411 ::
-                                              NVIC_PRIO_BITS),) ; rtic ::
-            export :: NVIC ::
-            unmask(you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml
-                   :: interrupt :: EXTI0) ; let _ =
-            [() ;
-             ((1 << stm32f4 :: stm32f411 :: NVIC_PRIO_BITS) - 2u8 as usize)] ;
-            core.NVIC.set_priority(you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml
-                                   :: interrupt :: USART2, rtic :: export ::
-                                   logical2hw(2u8, stm32f4 :: stm32f411 ::
-                                              NVIC_PRIO_BITS),) ; rtic ::
-            export :: NVIC ::
-            unmask(you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml
-                   :: interrupt :: USART2) ; #[inline(never)] fn
-            __rtic_init_resources < F > (f : F) where F : FnOnce() { f() ; }
+             ((1 << stm32f4 :: stm32f401 :: NVIC_PRIO_BITS) -
+              (1 << stm32f4 :: stm32f401 :: NVIC_PRIO_BITS) as usize)] ;
+            core.SCB.set_priority(rtic :: export :: SystemHandler :: SysTick,
+                                  rtic :: export ::
+                                  logical2hw((1 << stm32f4 :: stm32f401 ::
+                                              NVIC_PRIO_BITS), stm32f4 ::
+                                             stm32f401 :: NVIC_PRIO_BITS),) ;
+            if! < DwtSystick < FREQ_CORE > as rtic :: Monotonic > ::
+            DISABLE_INTERRUPT_ON_EMPTY_QUEUE
+            {
+                core :: mem :: transmute :: < _, rtic :: export :: SYST >
+                (()).enable_interrupt() ;
+            } #[inline(never)] fn __rtic_init_resources < F > (f : F) where F
+            : FnOnce() { f() ; }
             __rtic_init_resources(||
                                   {
                                       let(shared_resources, local_resources,
                                           mut monotonics) =
                                       init(init :: Context ::
                                            new(core.into())) ;
-                                      __rtic_internal_shared_resource_tx.get_mut().write(core
-                                                                                         ::
-                                                                                         mem
-                                                                                         ::
-                                                                                         MaybeUninit
-                                                                                         ::
-                                                                                         new(shared_resources.tx))
-                                      ;
-                                      __rtic_internal_shared_resource_rx.get_mut().write(core
-                                                                                         ::
-                                                                                         mem
-                                                                                         ::
-                                                                                         MaybeUninit
-                                                                                         ::
-                                                                                         new(shared_resources.rx))
+                                      __rtic_internal_local_resource_pmw3389.get_mut().write(core
+                                                                                             ::
+                                                                                             mem
+                                                                                             ::
+                                                                                             MaybeUninit
+                                                                                             ::
+                                                                                             new(local_resources.pmw3389))
+                                      ; monotonics.0.reset() ;
+                                      __rtic_internal_MONOTONIC_STORAGE_MyMono.get_mut().write(Some(monotonics.0))
                                       ; rtic :: export :: interrupt ::
                                       enable() ;
                                   }) ;

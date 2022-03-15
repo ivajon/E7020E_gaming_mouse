@@ -91,6 +91,8 @@ pub struct Pmw3389<SPI, CS, D> {
     cs: CS,
     pub delay: D,
     burst: bool,
+    cpi : u16,
+    cpi_increment: u16
 }
 
 impl<SPI, CS, D, E> Pmw3389<SPI, CS, D>
@@ -114,6 +116,8 @@ where
             cs,
             delay,
             burst: false,
+            cpi: 400,
+            cpi_increment : 10,
         };
 
         rprintln!("pmw3389 - reset");
@@ -217,10 +221,19 @@ where
     pub fn product_id(&mut self) -> Result<u8, E> {
         self.read_register(Register::ProductId)
     }
+    // Increments the cpi value
+    pub fn increment_cpi(&mut self,direction :i16) {
+        if direction == -1 && self.cpi > self.cpi_increment {
+            self.cpi -= self.cpi_increment;
+        } else if direction == 1 && self.cpi < 4000 {
+            self.cpi += self.cpi_increment;
+        }
+        self.set_cpi().ok();
 
+    }
     // Set CPI
-    pub fn set_cpi(&mut self, cpi: u16) -> Result<(), E> {
-        let cpi = cpi / 50;
+    pub fn set_cpi(&mut self) -> Result<(), E> {
+        let cpi = self.cpi / 50;
         self.write_register(Register::ResolutionH, (cpi >> 8) as u8)?;
         self.write_register(Register::ResolutionL, cpi as u8)
     }
