@@ -5,7 +5,7 @@
 
 use panic_semihosting as _;
 
-#[rtic::app(device = stm32f4::stm32f411, dispatchers = [EXTI0])]
+#[rtic::app(device = stm32f4::stm32f401, dispatchers = [EXTI0])]
 mod app {
     use stm32f4xx_hal::otg_fs::{UsbBus, USB};
     use stm32f4xx_hal::prelude::*;

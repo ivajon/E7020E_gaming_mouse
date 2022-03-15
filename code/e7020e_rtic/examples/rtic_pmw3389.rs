@@ -7,7 +7,7 @@
 #![no_std]
 
 use panic_rtt_target as _;
-#[rtic::app(device = stm32f4::stm32f411)]
+#[rtic::app(device = stm32f4::stm32f401)]
 mod app {
     use app::pmw3389::Pmw3389;
     use dwt_systick_monotonic::*;
@@ -23,15 +23,15 @@ mod app {
         timer::Delay,
     };
 
-    use stm32f4::stm32f411::{SPI2, TIM5};
+    use stm32f4::stm32f401::{SPI1, TIM5};
 
     // types need to be concrete for storage in a resource
-    type SCK = Pin<Alternate<PushPull, 5_u8>, 'B', 10_u8>;
-    type MOSI = Pin<Alternate<PushPull, 5_u8>, 'C', 3_u8>;
-    type MISO = Pin<Alternate<PushPull, 5_u8>, 'C', 2_u8>;
-    type CS = Pin<Output<PushPull>, 'B', 4_u8>;
+    type SCK = Pin<Alternate<PushPull, 5_u8>, 'A', 5_u8>;
+    type MOSI = Pin<Alternate<PushPull, 5_u8>, 'A', 7_u8>;
+    type MISO = Pin<Alternate<PushPull, 5_u8>, 'A', 6_u8>;
+    type CS = Pin<Output<PushPull>, 'A', 4_u8>;
 
-    type SPI = Spi<SPI2, (SCK, MISO, MOSI), TransferModeNormal>;
+    type SPI = Spi<SPI1, (SCK, MISO, MOSI), TransferModeNormal>;
     type DELAY = Delay<TIM5, 1000000_u32>;
     type PMW3389 = Pmw3389<SPI, CS, DELAY>;
 
@@ -79,14 +79,14 @@ mod app {
         // +5, (white)
         // gnd, (black)
 
-        let gpiob = device.GPIOB.split();
+        let gpioa = device.GPIOA.split();
         let gpioc = device.GPIOC.split();
 
-        let sck: SCK = gpiob.pb10.into_alternate().set_speed(Speed::VeryHigh);
-        let miso: MISO = gpioc.pc2.into_alternate().set_speed(Speed::High);
-        let mosi: MOSI = gpioc.pc3.into_alternate().set_speed(Speed::High);
-        let cs: CS = gpiob.pb4.into_push_pull_output().set_speed(Speed::High);
-        let spi: SPI = Spi::new(device.SPI2, (sck, miso, mosi), MODE_3, 1.MHz(), &clocks);
+        let sck: SCK = gpioa.pa5.into_alternate().set_speed(Speed::VeryHigh);
+        let miso: MISO = gpioa.pa6.into_alternate().set_speed(Speed::High);
+        let mosi: MOSI = gpioa.pa7.into_alternate().set_speed(Speed::High);
+        let cs: CS = gpioa.pa4.into_push_pull_output().set_speed(Speed::High);
+        let spi: SPI = Spi::new(device.SPI1, (sck, miso, mosi), MODE_3, 1.MHz(), &clocks);
 
         let pmw3389: PMW3389 = Pmw3389::new(spi, cs, delay).unwrap();
 

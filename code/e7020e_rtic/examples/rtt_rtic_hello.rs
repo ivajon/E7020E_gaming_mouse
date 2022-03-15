@@ -7,7 +7,7 @@
 
 use panic_halt as _;
 
-#[rtic::app(device = stm32f4::stm32f411)]
+#[rtic::app(device = stm32f4::stm32f401)]
 mod app {
     use rtt_target::{rprintln, rtt_init_print};
 

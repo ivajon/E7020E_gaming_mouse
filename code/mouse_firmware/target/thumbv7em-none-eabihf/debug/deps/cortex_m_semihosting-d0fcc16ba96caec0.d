@@ -1,0 +1,10 @@
+/home/ivarj/git/project_2/e7020e-project/code/mouse_firmware/target/thumbv7em-none-eabihf/debug/deps/cortex_m_semihosting-d0fcc16ba96caec0.rmeta: /home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/lib.rs /home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/macros.rs /home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/debug.rs /home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/export.rs /home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/hio.rs /home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/nr.rs
+
+/home/ivarj/git/project_2/e7020e-project/code/mouse_firmware/target/thumbv7em-none-eabihf/debug/deps/cortex_m_semihosting-d0fcc16ba96caec0.d: /home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/lib.rs /home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/macros.rs /home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/debug.rs /home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/export.rs /home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/hio.rs /home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/nr.rs
+
+/home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/lib.rs:
+/home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/macros.rs:
+/home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/debug.rs:
+/home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/export.rs:
+/home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/hio.rs:
+/home/ivarj/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-semihosting-0.3.7/src/nr.rs:

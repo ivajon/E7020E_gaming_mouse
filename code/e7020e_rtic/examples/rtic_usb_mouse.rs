@@ -12,7 +12,7 @@
 
 use panic_rtt_target as _;
 
-#[rtic::app(device = stm32f4::stm32f411, dispatchers = [EXTI0])]
+#[rtic::app(device = stm32f4::stm32f401, dispatchers = [EXTI0])]
 mod app {
     use rtt_target::{rprintln, rtt_init_print};
     use stm32f4xx_hal::otg_fs::{UsbBus, USB};

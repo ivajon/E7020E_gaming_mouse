@@ -14,28 +14,47 @@ use panic_rtt_target as _;
 
 #[rtic::app(device = stm32f4::stm32f401, dispatchers = [DMA1_STREAM0])]
 mod app {
+    use app::pmw3389::Pmw3389;
     use rtt_target::{rprintln, rtt_init_print};
     use stm32f4xx_hal::otg_fs::{UsbBus, USB};
     use stm32f4xx_hal::prelude::*;
     use stm32f4xx_hal::gpio::*;
+    use embedded_hal::spi::MODE_3;
     use usb_device::{bus::UsbBusAllocator, prelude::*};
     use usbd_hid::{
         descriptor::{generator_prelude::*, MouseReport},
         hid_class::HIDClass,
     };
+    use stm32f4xx_hal::{
+        gpio::{Alternate, Output, Pin, PushPull, Speed},
+        prelude::*,
+        spi::{Spi, TransferModeNormal},
+        timer::Delay,
+    };
 
+    use stm32f4::stm32f401::{SPI1, TIM5};
     use app::mouseReport::MouseState;
 
     //type Button = ErasedPin<Input<PullUp>>;
     type Button = ErasedPin<Input<PullDown>>;
+    // types need to be concrete for storage in a resource
+    type SCK = Pin<Alternate<PushPull, 5_u8>, 'A', 5_u8>;
+    type MOSI = Pin<Alternate<PushPull, 5_u8>, 'A', 7_u8>;
+    type MISO = Pin<Alternate<PushPull, 5_u8>, 'A', 6_u8>;
+    type CS = Pin<Output<PushPull>, 'A', 4_u8>;
 
+    type SPI = Spi<SPI1, (SCK, MISO, MOSI), TransferModeNormal>;
+    type DELAY = Delay<TIM5, 1000000_u32>;
+    type PMW3389 = Pmw3389<SPI, CS, DELAY>;
     #[shared]
     struct Shared {
         mouse: MouseState
+
     }
 
     #[local]
     struct Local {
+        pmw3389: PMW3389,
         usb_dev: UsbDevice<'static, UsbBus<USB>>,
         hid: HIDClass<'static, UsbBus<USB>>,
         left: Button,
@@ -71,6 +90,15 @@ mod app {
             hclk: clocks.hclk(),
         };
 
+
+        let sck: SCK = gpioa.pa5.into_alternate().set_speed(Speed::VeryHigh);
+        let miso: MISO = gpioa.pa6.into_alternate().set_speed(Speed::High);
+        let mosi: MOSI = gpioa.pa7.into_alternate().set_speed(Speed::High);
+        let cs: CS = gpioa.pa4.into_push_pull_output().set_speed(Speed::High);
+        let spi: SPI = Spi::new(dp.SPI1, (sck, miso, mosi), MODE_3, 1.MHz(), &clocks);
+        let delay: DELAY = dp.TIM5.delay_us(&clocks);
+
+        let pmw3389: PMW3389 = Pmw3389::new(spi, cs, delay).unwrap();
         let mut left = gpiob.pb0.into_pull_down_input().erase();
         let mut right = gpiob.pb1.into_pull_down_input().erase();
         let mut middle = gpiob.pb12.into_pull_down_input().erase();
@@ -131,7 +159,7 @@ mod app {
 
         (
             Shared {mouse},
-            Local { usb_dev, hid, left, right, middle, front, back},
+            Local { pmw3389,usb_dev, hid, left, right, middle, front, back},
             init::Monotonics()
         )
     }
@@ -246,7 +274,7 @@ mod app {
             *first = false;
         }
 
-        // wraps around after 200ms
+        /*// wraps around after 200ms
         *counter = (*counter + 1) % 200;
         let mov = match *counter {
             // reached after 100ms
@@ -266,16 +294,57 @@ mod app {
             mouse.add_x_movement(mov);
         });
 
+        */
+
         cx.shared.mouse.lock(|mouse| {
             let report = mouse.get_report_and_reset();
             // push the report
             hid.push_input(&report).ok();
         });
 
-
         // update the usb device state
         if usb_dev.poll(&mut [hid]) {
             return;
+        }
+    }
+    #[idle(local = [pmw3389],shared = [mouse])]
+    fn idle(mut cx: idle::Context) -> ! {
+        let pmw3389 = cx.local.pmw3389;
+        // This is just an example that measures the drift in a test rig
+        // it polls the sensor at 10Hz, you can do it much quicker as well.
+        //
+        // Internally it has a much hight sample frequency of the camera images
+        // and it buffers/accumulates the deltas between polls.
+        //
+        // Reading the motion value will latch the current state into the
+        // DeltaXL,XH, etc., while at the same time reset the accumulators.
+        //
+        // This way, the polling and measurements done by the PMW3389 will be
+        // completely asynchronous. You have to make sure that you poll
+        // often enough for accumulated deltas not to saturate the 16 bit.
+        // This could happen if you have set a high dpi, move mouse fast
+        // and poll at a too low rate.
+        //
+        // In your case you will poll at 1ms, so I think its is physically
+        // impossible to drag the mouse fast enough to saturate.
+        //
+        // There might be some flag set if saturated but you could
+        // Check if any measurement exceeds 10% of i16::MAX, this
+        // should give you immense headroom, when setting the dpi.
+        //
+        pmw3389.set_cpi(800).unwrap();
+        let mut x_acc: i32 = 0;
+        loop {
+            let status = pmw3389.read_status().unwrap();
+            x_acc += status.dx as i32;
+            //rprintln!("acc {} dx, dy = {:?}", x_acc, status);
+            if status.dx!=0 || status.dy!=0
+            {
+                cx.shared.mouse.lock(|mouse| {
+                    mouse.add_x_movement(status.dx as i8 );
+                    mouse.add_y_movement(status.dy as i8);
+                });   
+            }
         }
     }
 }
