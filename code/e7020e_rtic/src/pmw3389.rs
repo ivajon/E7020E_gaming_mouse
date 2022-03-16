@@ -6,7 +6,6 @@ use embedded_hal::{
     },
     digital::v2::OutputPin,
 };
-
 use rtt_target::rprintln;
 
 #[allow(dead_code)]
@@ -91,6 +90,8 @@ pub struct Pmw3389<SPI, CS, D> {
     cs: CS,
     pub delay: D,
     burst: bool,
+    dpi : u16,
+    cpi_increment: u16
 }
 
 impl<SPI, CS, D, E> Pmw3389<SPI, CS, D>
@@ -114,6 +115,8 @@ where
             cs,
             delay,
             burst: false,
+            dpi: 400,
+            cpi_increment : 10,
         };
 
         rprintln!("pmw3389 - reset");
@@ -154,6 +157,7 @@ where
         pmw3389.read_register(Register::DeltaYH)?;
 
         pmw3389.upload_firmware()?;
+
 
         // wait for firmware to start, not sure how long?
         pmw3389.delay.delay_us(50_000); // 50ms
@@ -216,10 +220,26 @@ where
     pub fn product_id(&mut self) -> Result<u8, E> {
         self.read_register(Register::ProductId)
     }
+    // Increments the cpi value
+    pub fn increment_dpi(&mut self,direction :i16) {
+        if direction == -1 && self.dpi > self.cpi_increment+50 {
+            self.dpi -= self.cpi_increment;
+        } else if direction == 1 && self.dpi < 4000 {
+            self.dpi += self.cpi_increment;
+        }
+        self.store_cpi().ok();
 
+    }
+    pub fn set_dpi(&mut self,cpi : u16) 
+    {
+        if cpi >= 50{
+            self.dpi = cpi;
+            self.store_cpi().ok();
+        }
+    }
     // Set CPI
-    pub fn set_cpi(&mut self, cpi: u16) -> Result<(), E> {
-        let cpi = cpi / 50;
+    pub fn store_cpi(&mut self) -> Result<(), E> {
+        let cpi = self.dpi / 50;
         self.write_register(Register::ResolutionH, (cpi >> 8) as u8)?;
         self.write_register(Register::ResolutionL, cpi as u8)
     }
@@ -268,8 +288,8 @@ where
         let surface = buf[0] & (1 << 3) != 0;
         // 0 if on surface / 1 if off surface
 
-        let dx: i16 = (((buf[3] as u16) << 8) | buf[2] as u16) as i16;
-        let dy: i16 = (((buf[5] as u16) << 8) | buf[4] as u16) as i16;
+        let dx: i16 = ((((buf[3] as u16) << 8) | buf[2] as u16)) as i16;
+        let dy: i16 = ((((buf[5] as u16) << 8) | buf[4] as u16)) as i16;
 
         let squal = buf[6];
 

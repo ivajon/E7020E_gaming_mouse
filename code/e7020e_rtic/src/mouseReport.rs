@@ -1,3 +1,4 @@
+use rtt_target::rprintln;
 use usbd_hid::descriptor::MouseReport;
 
 pub struct MouseState {
@@ -19,6 +20,9 @@ impl MouseState {
             right_button: false,
             middle_button: false
         }
+    }
+    pub fn get_middle_state(&self) -> bool {
+        self.middle_button
     }
 
     pub fn add_x_movement(&mut self, to_add: i8) {

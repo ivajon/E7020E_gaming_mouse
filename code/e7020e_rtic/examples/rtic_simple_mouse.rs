@@ -48,13 +48,19 @@ mod app {
     type PMW3389 = Pmw3389<SPI, CS, DELAY>;
     #[shared]
     struct Shared {
-        mouse: MouseState
+        mouse: MouseState,
+        pmw3389: PMW3389
 
     }
-
+    #[repr(u8)]
+    enum API{
+        RGB_CONTOLL = 0x01,
+        dpi_CONTROLL = 0x02,
+        DPI_CONTROLL = 0x03,
+        MACRO_CONTOLL = 0x04,
+    }
     #[local]
     struct Local {
-        pmw3389: PMW3389,
         usb_dev: UsbDevice<'static, UsbBus<USB>>,
         hid: HIDClass<'static, UsbBus<USB>>,
         left: Button,
@@ -62,6 +68,9 @@ mod app {
         middle: Button,
         front: Button,
         back: Button,
+        phase_a : Button,
+        phase_b : Button,
+        motion : Button
     }
 
     const POLL_INTERVAL_MS: u8 = 1;
@@ -97,15 +106,18 @@ mod app {
         let cs: CS = gpioa.pa4.into_push_pull_output().set_speed(Speed::High);
         let spi: SPI = Spi::new(dp.SPI1, (sck, miso, mosi), MODE_3, 1.MHz(), &clocks);
         let delay: DELAY = dp.TIM5.delay_us(&clocks);
-
-        let pmw3389: PMW3389 = Pmw3389::new(spi, cs, delay).unwrap();
+        let mut pmw3389: PMW3389 = Pmw3389::new(spi, cs, delay).unwrap();
+        let mut motion = gpiob.pb13.into_pull_down_input().erase();
+        let mut phase_a = gpiob.pb2.into_pull_down_input().erase();
+        let mut phase_b = gpioc.pc9.into_pull_down_input().erase();
         let mut left = gpiob.pb0.into_pull_down_input().erase();
         let mut right = gpiob.pb1.into_pull_down_input().erase();
         let mut middle = gpiob.pb12.into_pull_down_input().erase();
         let mut front = gpioc.pc5.into_pull_down_input().erase();
         let mut back = gpioc.pc4.into_pull_down_input().erase();
 
-
+        // Write the cpi regs on startup
+        pmw3389.store_cpi().ok();
         /*
         loop {
             if left.is_high() {
@@ -117,7 +129,13 @@ mod app {
         */
 
         let mut sys_cfg = dp.SYSCFG.constrain();
-
+        // enable scroll wheel
+        phase_a.make_interrupt_source(&mut sys_cfg);
+        phase_b.make_interrupt_source(&mut sys_cfg);
+        phase_a.enable_interrupt(&mut dp.EXTI);
+        phase_b.enable_interrupt(&mut dp.EXTI);
+        phase_a.trigger_on_edge(&mut dp.EXTI, Edge::Rising);
+        phase_b.trigger_on_edge(&mut dp.EXTI, Edge::Rising);
         // Enable interuppts for the buttons
         left.make_interrupt_source(&mut sys_cfg);
         left.enable_interrupt(&mut dp.EXTI);
@@ -151,35 +169,35 @@ mod app {
 
         let usb_dev =
             UsbDeviceBuilder::new(cx.local.bus.as_ref().unwrap(), UsbVidPid(0xc410, 0x0000))
-                .manufacturer("e7020e")
-                .product("Mouse")
-                .serial_number("1337")
+                .manufacturer("Ivar och Erik")
+                .product("Banger gaming mus")
+                .serial_number("1234")
                 .device_class(0) // Hid
                 .build();
 
         (
-            Shared {mouse},
-            Local { pmw3389,usb_dev, hid, left, right, middle, front, back},
+            Shared {mouse,pmw3389},
+            Local { usb_dev, hid, left, right, middle, front, back, phase_a,phase_b,motion},
             init::Monotonics()
         )
     }
-
-    #[task(binds=EXTI15_10, local = [middle], shared = [mouse])]
+    #[task(binds=EXTI15_10, local = [middle,motion], shared = [mouse])]
     fn middle_hand(mut cx: middle_hand::Context) {
         // this should be automatic
         cx.local.middle.clear_interrupt_pending_bit();
-
+        
         if cx.local.middle.is_low() {
-            rprintln!("middle low");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.push_middle();
-            });
-        } else {
-            rprintln!("middle high");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.release_middle();
-            });
+                rprintln!("middle low");
+                cx.shared.mouse.lock(|mouse| {
+                    mouse.release_middle();
+                });
+            } else if cx.local.middle.is_high() {
+                rprintln!("middle high");
+                cx.shared.mouse.lock(|mouse| {
+                    mouse.push_middle();
+                });
         }
+        
     }
 
     #[task(binds=EXTI0, local = [left], shared = [mouse])]
@@ -190,12 +208,12 @@ mod app {
         if cx.local.left.is_low() {
             rprintln!("left low");
             cx.shared.mouse.lock(|mouse| {
-                mouse.push_left();
+                mouse.release_left();
             });
         } else {
             rprintln!("left high");
             cx.shared.mouse.lock(|mouse| {
-                mouse.release_left();
+                mouse.push_left();
             });
         }
     }
@@ -208,48 +226,53 @@ mod app {
         if cx.local.right.is_low() {
             rprintln!("right low");
             cx.shared.mouse.lock(|mouse| {
-                mouse.push_right();
+                mouse.release_right();
             });
         } else {
             rprintln!("right high");
             cx.shared.mouse.lock(|mouse| {
-                mouse.release_right();
+                mouse.push_right();
             });
         }
     }
 
-    #[task(binds=EXTI9_5, local = [front], shared = [mouse])]
+    #[task(binds=EXTI9_5, local = [front], shared = [mouse,pmw3389])]
     fn front_hand(mut cx: front_hand::Context) {
         // this should be automatic
         cx.local.front.clear_interrupt_pending_bit();
-
         if cx.local.front.is_low() {
-            rprintln!("front low");
             cx.shared.mouse.lock(|mouse| {
-                //mouse.push_front();
+                
             });
         } else {
             rprintln!("front high");
             cx.shared.mouse.lock(|mouse| {
-                //mouse.release_front();
+                cx.shared.pmw3389.lock(|pmw3389| {
+                    pmw3389.increment_dpi(1);
+                });
+                //mouse.push_front();
             });
         }
     }
 
-    #[task(binds=EXTI4, local = [back], shared = [mouse])]
+    #[task(binds=EXTI4, local = [back], shared = [mouse,pmw3389])]
     fn back_hand(mut cx: back_hand::Context) {
+        
         // this should be automatic
         cx.local.back.clear_interrupt_pending_bit();
-
         if cx.local.back.is_low() {
             rprintln!("back low");
             cx.shared.mouse.lock(|mouse| {
-                //mouse.push_front();
+                cx.shared.pmw3389.lock(|pmw3389| {
+                    pmw3389.increment_dpi(-1);
+                });
+                //mouse.release_front();
             });
         } else {
-            rprintln!("back high");
+            //rprintln!("back high");
             cx.shared.mouse.lock(|mouse| {
-                //mouse.release_front();
+                
+                //mouse.push_front();
             });
         }
     }
@@ -274,42 +297,71 @@ mod app {
             *first = false;
         }
 
-        /*// wraps around after 200ms
-        *counter = (*counter + 1) % 200;
-        let mov = match *counter {
-            // reached after 100ms
-            100 => {
-                rprintln!("10");
-                10
+        // Buffer could be extended if needed
+        let mut buf = [0u8; 16];
+        match hid.pull_raw_output(&mut buf).ok(){
+            // Should return almost istantaneously if there is no data
+            Some(len) => {
+                // The mouse has been polled for update purposes
+                handle_host_call::spawn(buf).unwrap();
+            },
+            None => {
             }
-            // reached after 200ms
-            0 => {
-                rprintln!("-10");
-                -10
-            }
-            _ => 0,
-        };
-
-        cx.shared.mouse.lock(|mouse| {
-            mouse.add_x_movement(mov);
-        });
-
-        */
-
+        }
+        // The mouse has been polled for non update purposes
         cx.shared.mouse.lock(|mouse| {
             let report = mouse.get_report_and_reset();
             // push the report
             hid.push_input(&report).ok();
         });
-
         // update the usb device state
         if usb_dev.poll(&mut [hid]) {
             return;
         }
+        
     }
-    #[idle(local = [pmw3389],shared = [mouse])]
+    #[task()]
+    fn handle_host_call(mut cx :handle_host_call::Context,buffer : [u8;16]) {
+        rprintln!("handle host call");
+        rprintln!("{:?}", buffer);
+        // Defines an api
+        match buffer[0]{
+            0x01 => {
+                rprintln!("RGB _controll");
+            },
+            0x02 => {
+                rprintln!("DPI _controll");
+                // In this case the next 2 bytes are the new dpi
+                let dpi = (buffer[1] as u16) << 8 | buffer[2] as u16;
+                handle_dpi::spawn(dpi).unwrap();
+            },
+            0x03 => {
+                rprintln!("DPI _controll");
+            },
+            0x04 => {
+                rprintln!("Macro _controll");
+            },
+            _ => {
+                rprintln!("unknown");
+            }
+        }
+
+    }
+    #[task(shared = [pmw3389])]
+    fn handle_dpi(mut cx : handle_dpi::Context,dpi : u16){
+        // Catches error when sending 2,32,32 which occurs on reset
+        if dpi ==  8224{
+            return;
+        }
+
+        //rprintln!("New DPI : {:}", dpi);
+        //rprintln!("handle dpi");
+        cx.shared.pmw3389.lock(|pmw3389| {
+            pmw3389.set_dpi(dpi);
+        });
+    }
+    #[idle(shared = [mouse,pmw3389])]
     fn idle(mut cx: idle::Context) -> ! {
-        let pmw3389 = cx.local.pmw3389;
         // This is just an example that measures the drift in a test rig
         // it polls the sensor at 10Hz, you can do it much quicker as well.
         //
@@ -332,19 +384,28 @@ mod app {
         // Check if any measurement exceeds 10% of i16::MAX, this
         // should give you immense headroom, when setting the dpi.
         //
-        pmw3389.set_cpi(800).unwrap();
-        let mut x_acc: i32 = 0;
         loop {
-            let status = pmw3389.read_status().unwrap();
-            x_acc += status.dx as i32;
-            //rprintln!("acc {} dx, dy = {:?}", x_acc, status);
-            if status.dx!=0 || status.dy!=0
-            {
-                cx.shared.mouse.lock(|mouse| {
-                    mouse.add_x_movement(status.dx as i8 );
-                    mouse.add_y_movement(status.dy as i8);
-                });   
-            }
+            let status   = cx.shared.pmw3389.lock(|pmw3389| {
+                pmw3389.read_status()
+            });
+            match status{
+                Ok(status) => {
+                    if status.dx!=0 || status.dy!=0
+                    {
+                        cx.shared.mouse.lock(|mouse| {
+                            mouse.add_x_movement(status.dx as i8 );
+                            mouse.add_y_movement(status.dy as i8);
+                        });   
+                    }
+                },
+                Err(e) => {
+                    rprintln!("{:?}",e);
+                }
+            } 
+            
+            
         }
     }
+    
+    
 }
