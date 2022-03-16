@@ -44,18 +44,10 @@ class usb_device:
         self.attach()
     def reset(self):
         self.dev.reset()
-    def set_configuration(self):
-        self.dev.set_configuration()
-    def get_active_configuration(self):
-        return self.dev.get_active_configuration()
-    def get_active_configuration_descriptor(self):
-        return self.dev.get_active_configuration_descriptor()
     def __repr__(self) -> str:
         return f"<usb_device: {self.idVendor}:{self.idProduct}>"
     def __str__(self) -> str:
         return f"<usb_device: {self.idVendor}:{self.idProduct}>"
-    def __eq__(self,other) -> bool:
-        return self.idVendor == other.idVendor and self.idProduct == other.idProduct
 
 
 
