@@ -52,7 +52,13 @@ mod app {
         pmw3389: PMW3389
 
     }
-
+    #[repr(u8)]
+    enum API{
+        RGB_CONTOLL = 0x01,
+        dpi_CONTROLL = 0x02,
+        DPI_CONTROLL = 0x03,
+        MACRO_CONTOLL = 0x04,
+    }
     #[local]
     struct Local {
         usb_dev: UsbDevice<'static, UsbBus<USB>>,
@@ -110,8 +116,8 @@ mod app {
         let mut front = gpioc.pc5.into_pull_down_input().erase();
         let mut back = gpioc.pc4.into_pull_down_input().erase();
 
-
-        pmw3389.set_cpi().unwrap();
+        // Write the cpi regs on startup
+        pmw3389.store_cpi().ok();
         /*
         loop {
             if left.is_high() {
@@ -183,6 +189,7 @@ mod app {
         if cx.local.middle.is_low() {
                 rprintln!("middle low");
                 cx.shared.mouse.lock(|mouse| {
+                    mouse.release_middle();
                 });
             } else if cx.local.middle.is_high() {
                 rprintln!("middle high");
@@ -233,7 +240,6 @@ mod app {
     fn front_hand(mut cx: front_hand::Context) {
         // this should be automatic
         cx.local.front.clear_interrupt_pending_bit();
-
         if cx.local.front.is_low() {
             cx.shared.mouse.lock(|mouse| {
                 
@@ -242,7 +248,7 @@ mod app {
             rprintln!("front high");
             cx.shared.mouse.lock(|mouse| {
                 cx.shared.pmw3389.lock(|pmw3389| {
-                    pmw3389.increment_cpi(1);
+                    pmw3389.increment_dpi(1);
                 });
                 //mouse.push_front();
             });
@@ -251,14 +257,14 @@ mod app {
 
     #[task(binds=EXTI4, local = [back], shared = [mouse,pmw3389])]
     fn back_hand(mut cx: back_hand::Context) {
+        
         // this should be automatic
         cx.local.back.clear_interrupt_pending_bit();
-
         if cx.local.back.is_low() {
             rprintln!("back low");
             cx.shared.mouse.lock(|mouse| {
                 cx.shared.pmw3389.lock(|pmw3389| {
-                    pmw3389.increment_cpi(-1);
+                    pmw3389.increment_dpi(-1);
                 });
                 //mouse.release_front();
             });
@@ -291,17 +297,68 @@ mod app {
             *first = false;
         }
 
-        
+        // Buffer could be extended if needed
+        let mut buf = [0u8; 16];
+        match hid.pull_raw_output(&mut buf).ok(){
+            // Should return almost istantaneously if there is no data
+            Some(len) => {
+                // The mouse has been polled for update purposes
+                handle_host_call::spawn(buf).unwrap();
+            },
+            None => {
+            }
+        }
+        // The mouse has been polled for non update purposes
         cx.shared.mouse.lock(|mouse| {
             let report = mouse.get_report_and_reset();
             // push the report
             hid.push_input(&report).ok();
         });
-
         // update the usb device state
         if usb_dev.poll(&mut [hid]) {
             return;
         }
+        
+    }
+    #[task()]
+    fn handle_host_call(mut cx :handle_host_call::Context,buffer : [u8;16]) {
+        rprintln!("handle host call");
+        rprintln!("{:?}", buffer);
+        // Defines an api
+        match buffer[0]{
+            0x01 => {
+                rprintln!("RGB _controll");
+            },
+            0x02 => {
+                rprintln!("DPI _controll");
+                // In this case the next 2 bytes are the new dpi
+                let dpi = (buffer[1] as u16) << 8 | buffer[2] as u16;
+                handle_dpi::spawn(dpi).unwrap();
+            },
+            0x03 => {
+                rprintln!("DPI _controll");
+            },
+            0x04 => {
+                rprintln!("Macro _controll");
+            },
+            _ => {
+                rprintln!("unknown");
+            }
+        }
+
+    }
+    #[task(shared = [pmw3389])]
+    fn handle_dpi(mut cx : handle_dpi::Context,dpi : u16){
+        // Catches error when sending 2,32,32 which occurs on reset
+        if dpi ==  8224{
+            return;
+        }
+
+        //rprintln!("New DPI : {:}", dpi);
+        //rprintln!("handle dpi");
+        cx.shared.pmw3389.lock(|pmw3389| {
+            pmw3389.set_dpi(dpi);
+        });
     }
     #[idle(shared = [mouse,pmw3389])]
     fn idle(mut cx: idle::Context) -> ! {

@@ -74,8 +74,10 @@ mod app {
         // Instantiate a new i2c bus from sda,scl using the standard mode
 
 
-
-        let i2c = I2c::new(peripherals.I2C3, (sda,scl), Mode::Standard, &clocks);
+        
+        let i2c = I2c::new(peripherals.I2C3, 
+            (sda,scl),
+             Mode::Standard{frequency: 400.Hz()}, &clocks);
         use stm32f4xx_hal::gpio::*;
         // enable gpioa
         rcc.ahb1enr.write(|w| w.gpioaen().enabled());
