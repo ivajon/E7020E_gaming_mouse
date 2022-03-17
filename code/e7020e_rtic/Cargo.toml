@@ -12,6 +12,9 @@ cortex-m-semihosting = "0.3.7"
 cortex-m-rtic = "1.0.0"
 embedded-hal = "0.2.7"
 
+# Embeeded eeprom simulation
+eeprom = "0.2.0"
+
 # Panic handlers, comment out all but one to generate doc!
 panic-halt = "0.2.0"
 

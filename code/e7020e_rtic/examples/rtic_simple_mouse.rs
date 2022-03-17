@@ -12,13 +12,16 @@
 
 use panic_rtt_target as _;
 
-#[rtic::app(device = stm32f4::stm32f401, dispatchers = [DMA1_STREAM0])]
+#[rtic::app(device = stm32f4::stm32f401, dispatchers = [DMA1_STREAM0,DMA1_STREAM1])]
 mod app {
     use app::pmw3389::Pmw3389;
+    use eeprom::EEPROM;
+    use stm32f4::stm32f401::*;
     use rtt_target::{rprintln, rtt_init_print};
     use stm32f4xx_hal::otg_fs::{UsbBus, USB};
     use stm32f4xx_hal::prelude::*;
     use stm32f4xx_hal::gpio::*;
+    use dwt_systick_monotonic::*;
     use embedded_hal::spi::MODE_3;
     use usb_device::{bus::UsbBusAllocator, prelude::*};
     use usbd_hid::{
@@ -34,6 +37,11 @@ mod app {
 
     use stm32f4::stm32f401::{SPI1, TIM5};
     use app::mouseReport::MouseState;
+    // Default core clock at 16MHz
+    const FREQ_CORE: u32 = 16_000_000;
+
+    #[monotonic(binds = SysTick, default = true)]
+    type MyMono = DwtSystick<FREQ_CORE>; // 16MHz cycle accurate accuracy
 
     //type Button = ErasedPin<Input<PullUp>>;
     type Button = ErasedPin<Input<PullDown>>;
@@ -49,16 +57,11 @@ mod app {
     #[shared]
     struct Shared {
         mouse: MouseState,
-        pmw3389: PMW3389
+        pmw3389: PMW3389,
+        dp : Peripherals
 
     }
-    #[repr(u8)]
-    enum API{
-        RGB_CONTOLL = 0x01,
-        dpi_CONTROLL = 0x02,
-        DPI_CONTROLL = 0x03,
-        MACRO_CONTOLL = 0x04,
-    }
+    
     #[local]
     struct Local {
         usb_dev: UsbDevice<'static, UsbBus<USB>>,
@@ -70,7 +73,8 @@ mod app {
         back: Button,
         phase_a : Button,
         phase_b : Button,
-        motion : Button
+        motion : Button,
+        ts : u32
     }
 
     const POLL_INTERVAL_MS: u8 = 1;
@@ -79,8 +83,12 @@ mod app {
     fn init(cx: init::Context) -> (Shared, Local, init::Monotonics) {
         rtt_init_print!();
         rprintln!("init");
+        let mut cd = cx.core;
         let mut dp = cx.device;
-        let cd = cx.core;
+
+        // Systic config
+        let mut sys_cfg = dp.SYSCFG.constrain();
+        let mono = DwtSystick::new(&mut cd.DCB, cd.DWT,cd.SYST , FREQ_CORE);
 
         let rcc = dp.RCC.constrain();
 
@@ -128,7 +136,10 @@ mod app {
         }
         */
 
-        let mut sys_cfg = dp.SYSCFG.constrain();
+        // enable mouse sensor motion interrupt
+        //motion.make_interrupt_source(&mut sys_cfg);
+        //motion.enable_interrupt(&mut dp.EXTI);
+        //motion.trigger_on_edge(&mut dp.EXTI, Edge::Falling);
         // enable scroll wheel
         phase_a.make_interrupt_source(&mut sys_cfg);
         phase_b.make_interrupt_source(&mut sys_cfg);
@@ -174,24 +185,26 @@ mod app {
                 .serial_number("1234")
                 .device_class(0) // Hid
                 .build();
-
+        // Enable host wakeup
+        usb_dev.remote_wakeup_enabled();
+        let ts = 0;
         (
-            Shared {mouse,pmw3389},
-            Local { usb_dev, hid, left, right, middle, front, back, phase_a,phase_b,motion},
-            init::Monotonics()
+            Shared {mouse,pmw3389,dp},
+            Local { usb_dev, hid, left, right, middle, front, back, phase_a,phase_b,motion,ts},
+            init::Monotonics(mono)
         )
     }
-    #[task(binds=EXTI15_10, local = [middle,motion], shared = [mouse])]
+    #[task(binds=EXTI15_10,
+        priority = 2, local = [middle,motion,ts], shared = [mouse])]
     fn middle_hand(mut cx: middle_hand::Context) {
         // this should be automatic
         cx.local.middle.clear_interrupt_pending_bit();
-        
         if cx.local.middle.is_low() {
                 rprintln!("middle low");
                 cx.shared.mouse.lock(|mouse| {
                     mouse.release_middle();
                 });
-            } else if cx.local.middle.is_high() {
+        } else if cx.local.middle.is_high() {
                 rprintln!("middle high");
                 cx.shared.mouse.lock(|mouse| {
                     mouse.push_middle();
@@ -200,7 +213,7 @@ mod app {
         
     }
 
-    #[task(binds=EXTI0, local = [left], shared = [mouse])]
+    #[task(binds=EXTI0, priority = 2, local = [left], shared = [mouse])]
     fn left_hand(mut cx: left_hand::Context) {
         // this should be automatic
         cx.local.left.clear_interrupt_pending_bit();
@@ -235,11 +248,24 @@ mod app {
             });
         }
     }
+    #[task(shared = [dp])]
+    fn re_enable_interrupt(cx: re_enable_interrupt::Context,pin : ErasedPin<Input<PullDown>>) {
+        
+    }
 
-    #[task(binds=EXTI9_5, local = [front], shared = [mouse,pmw3389])]
+    #[task(binds=EXTI9_5, local = [front], shared = [mouse,dp])]
     fn front_hand(mut cx: front_hand::Context) {
         // this should be automatic
         cx.local.front.clear_interrupt_pending_bit();
+        // Temporarelly disable interrupts
+        cx.shared.dp.lock(|dp|{
+            cx.local.front.disable_interrupt(&mut dp.EXTI);
+        });
+
+        cx.shared.dp.lock(|dp|{
+            cx.local.front.disable_interrupt(&mut dp.EXTI);
+        });
+
         if cx.local.front.is_low() {
             cx.shared.mouse.lock(|mouse| {
                 
@@ -247,15 +273,15 @@ mod app {
         } else {
             rprintln!("front high");
             cx.shared.mouse.lock(|mouse| {
-                cx.shared.pmw3389.lock(|pmw3389| {
-                    pmw3389.increment_dpi(1);
-                });
+                //cx.shared.pmw3389.lock(|pmw3389| {
+                //    pmw3389.increment_dpi(1);
+                //});
                 //mouse.push_front();
             });
         }
     }
 
-    #[task(binds=EXTI4, local = [back], shared = [mouse,pmw3389])]
+    #[task(binds=EXTI4, local = [back], shared = [mouse])]
     fn back_hand(mut cx: back_hand::Context) {
         
         // this should be automatic
@@ -263,9 +289,9 @@ mod app {
         if cx.local.back.is_low() {
             rprintln!("back low");
             cx.shared.mouse.lock(|mouse| {
-                cx.shared.pmw3389.lock(|pmw3389| {
-                    pmw3389.increment_dpi(-1);
-                });
+                //cx.shared.pmw3389.lock(|pmw3389| {
+                //    pmw3389.increment_dpi(-1);
+                //});
                 //mouse.release_front();
             });
         } else {
@@ -281,6 +307,7 @@ mod app {
     // in this example each 1ms (POLL_INTERVAL_MS = 1)
     #[task(
         binds=OTG_FS,
+        priority = 1,
         local = [usb_dev, hid, first :bool = true, counter:u16 = 0],
         shared = [mouse]
     )]
@@ -303,6 +330,7 @@ mod app {
             // Should return almost istantaneously if there is no data
             Some(len) => {
                 // The mouse has been polled for update purposes
+                rprintln!("{:?}",buf);
                 handle_host_call::spawn(buf).unwrap();
             },
             None => {
@@ -349,11 +377,6 @@ mod app {
     }
     #[task(shared = [pmw3389])]
     fn handle_dpi(mut cx : handle_dpi::Context,dpi : u16){
-        // Catches error when sending 2,32,32 which occurs on reset
-        if dpi ==  8224{
-            return;
-        }
-
         //rprintln!("New DPI : {:}", dpi);
         //rprintln!("handle dpi");
         cx.shared.pmw3389.lock(|pmw3389| {
@@ -362,28 +385,6 @@ mod app {
     }
     #[idle(shared = [mouse,pmw3389])]
     fn idle(mut cx: idle::Context) -> ! {
-        // This is just an example that measures the drift in a test rig
-        // it polls the sensor at 10Hz, you can do it much quicker as well.
-        //
-        // Internally it has a much hight sample frequency of the camera images
-        // and it buffers/accumulates the deltas between polls.
-        //
-        // Reading the motion value will latch the current state into the
-        // DeltaXL,XH, etc., while at the same time reset the accumulators.
-        //
-        // This way, the polling and measurements done by the PMW3389 will be
-        // completely asynchronous. You have to make sure that you poll
-        // often enough for accumulated deltas not to saturate the 16 bit.
-        // This could happen if you have set a high dpi, move mouse fast
-        // and poll at a too low rate.
-        //
-        // In your case you will poll at 1ms, so I think its is physically
-        // impossible to drag the mouse fast enough to saturate.
-        //
-        // There might be some flag set if saturated but you could
-        // Check if any measurement exceeds 10% of i16::MAX, this
-        // should give you immense headroom, when setting the dpi.
-        //
         loop {
             let status   = cx.shared.pmw3389.lock(|pmw3389| {
                 pmw3389.read_status()
@@ -402,7 +403,6 @@ mod app {
                     rprintln!("{:?}",e);
                 }
             } 
-            
             
         }
     }

@@ -5,3 +5,4 @@ pub mod mouseReport;
 pub mod hidDescriptors;
 pub mod mouseKeyboardReport;
 pub mod macroSystem;
+pub mod srom;

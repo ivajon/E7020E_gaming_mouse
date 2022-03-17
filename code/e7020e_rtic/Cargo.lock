@@ -28,6 +28,7 @@ dependencies = [
  "cortex-m-rtic",
  "cortex-m-semihosting",
  "dwt-systick-monotonic",
+ "eeprom",
  "embedded-hal 0.2.7",
  "fugit",
  "nb 1.0.0",
@@ -221,6 +222,12 @@ dependencies = [
  "fugit",
  "rtic-monotonic",
 ]
+
+[[package]]
+name = "eeprom"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cbba9d959db714846776c680b38599beac3fd3309cca3ac9429ce4814653fe0b"
 
 [[package]]
 name = "embedded-dma"
