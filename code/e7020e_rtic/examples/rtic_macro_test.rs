@@ -59,7 +59,6 @@ mod app {
         rtt_init_print!();
         rprintln!("init");
         let mut dp = cx.device;
-        let cd = cx.core;
 
         let systick = cx.core.SYST;
         let mut dcb = cx.core.DCB;
@@ -85,7 +84,7 @@ mod app {
 
         let gpioc = dp.GPIOC.split();
         let gpiob = dp.GPIOB.split();
-        let mut button = gpiob.pb1.into_pull_up_input().erase();
+        let mut button = gpioa.pa13.into_pull_up_input().erase();
         let mut sys_cfg = dp.SYSCFG.constrain();
 
         // Enable interuppts for PC13
@@ -138,14 +137,14 @@ mod app {
                 }
             },
             MacroType::MacroMultiple(s) => {
-                let ms = s.delays[0];
-                do_macro::spawn_after(ms.millis(), s, 0).unwrap();
+                //let ms = s.delays[0];
+                //do_macro::spawn_after(ms.millis(), s, 0).unwrap();
             }
         }
     }
 
     // B1 is connected to PC13
-    #[task(binds=EXTI1, local = [button], shared = [mouse, macro_conf])]
+    #[task(binds=EXTI15_10, local = [button], shared = [mouse, macro_conf])]
     fn button_pressed(mut cx: button_pressed::Context) {
         // this should be automatic
         cx.local.button.clear_interrupt_pending_bit();
@@ -154,7 +153,7 @@ mod app {
             rprintln!("button low");
             cx.shared.macro_conf.lock(|macro_conf| {
                 cx.shared.mouse.lock(|mouse| {
-                    handle_macro(&macro_conf.right_button, mouse, true);
+                    //handle_macro(&macro_conf.right_button, mouse, true);
                 });
             });
 

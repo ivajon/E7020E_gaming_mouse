@@ -9,7 +9,7 @@
 # runner = "gdb-multiarch -q -x openocd.gdb"
 # runner = "gdb -q -x openocd.gdb"
 # runner = "probe-run --chip STM32F411RETx"
-runner = "probe-run --chip STM32F401RETx"
+runner = "probe-run --chip STM32F401RETx --connect-under-reset"
 
 rustflags = [
   # This is needed if your flash or ram addresses are not aligned to 0x10000 in memory.x
