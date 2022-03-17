@@ -1,4 +1,5 @@
 use crate::hidDescriptors::MouseKeyboard;
+use rtt_target::{rprintln, rtt_init_print};
 
 pub struct MouseKeyboardState {
     // mouse part
@@ -68,6 +69,7 @@ impl MouseKeyboardState {
     }
 
     pub fn push_right(&mut self) {
+        rprintln!("push_right state");
         self.right_button = true;
     }
 

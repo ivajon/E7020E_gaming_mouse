@@ -21,6 +21,7 @@ mod app {
     use stm32f4xx_hal::gpio::*;
     use embedded_hal::spi::MODE_3;
     use usb_device::{bus::UsbBusAllocator, prelude::*};
+    use dwt_systick_monotonic::*;
     use usbd_hid::{
         descriptor::{generator_prelude::*, MouseReport},
         hid_class::HIDClass,
@@ -50,9 +51,15 @@ mod app {
     type DELAY = Delay<TIM5, 1000000_u32>;
     type PMW3389 = Pmw3389<SPI, CS, DELAY>;
 
+    // Default core clock at 16MHz
+    const FREQ_CORE: u32 = 48_000_000;
+
+    #[monotonic(binds = SysTick, default = true)]
+    type MyMono = DwtSystick<FREQ_CORE>; // 16MHz cycle accurate accuracy
+
     #[shared]
     struct Shared {
-        mouse: MouseState,
+        mouse: MouseKeyboardState,
         macro_config: MacroConfig,
     }
 
@@ -85,7 +92,11 @@ mod app {
         rtt_init_print!();
         rprintln!("init");
         let mut dp = cx.device;
-        let cd = cx.core;
+        let mut cd = cx.core;
+
+        let mut sys_cfg = dp.SYSCFG.constrain();
+        // Systic config
+        let mono = DwtSystick::new(&mut cd.DCB, cd.DWT,cd.SYST , FREQ_CORE);
 
         let rcc = dp.RCC.constrain();
 
@@ -133,7 +144,6 @@ mod app {
         }
         */
 
-        let mut sys_cfg = dp.SYSCFG.constrain();
         // enable scroll wheel
         phase_a.make_interrupt_source(&mut sys_cfg);
         phase_b.make_interrupt_source(&mut sys_cfg);
@@ -170,9 +180,10 @@ mod app {
             POLL_INTERVAL_MS,
         );
 
-        let mouse = MouseState::new();
+        let mouse = MouseKeyboardState::new();
 
         let macro_config = MacroConfig::new();
+
 
         let usb_dev =
             UsbDeviceBuilder::new(cx.local.bus.as_ref().unwrap(), UsbVidPid(0xc410, 0x0000))
@@ -185,20 +196,35 @@ mod app {
         (
             Shared {mouse, macro_config},
             Local { usb_dev, hid, left, right, middle, front, back, phase_a,phase_b,motion},
-            init::Monotonics()
+            init::Monotonics(mono)
         )
     }
 
-    #[task(shared = [mouse, macro_config])]
-    fn do_macro(cx: do_macro::Context, m: &'static MacroSequence, i: u8) {
+    #[task(shared = [mouse])]
+    fn end_macro(mut cx: end_macro::Context, f: Function) {
+        cx.shared.mouse.lock(|mouse| {
+            end_function(f, mouse);
+        });
     }
 
-    fn handle_macro(conf: &MacroConfig, m: &MacroType, mouse: &mut MouseKeyboardState, is_push: bool) {
+    #[task(shared = [mouse, macro_config])]
+    fn do_macro(mut cx: do_macro::Context, m: usize, i: usize) {
+        cx.shared.macro_config.lock(|conf| {
+            let (function, delay, time) = conf.get_macro_params(m, i);
+            cx.shared.mouse.lock(|mouse| {
+                do_function(function, mouse);
+            });
+            do_macro::spawn_after(delay.millis(), m, i + 1).unwrap();
+            end_macro::spawn_after(time.millis(), function);
+        });
+    }
+
+    fn handle_macro(conf: &MacroConfig, m: MacroType, mouse: &mut MouseKeyboardState, is_push: bool) {
         match m {
             MacroType::MacroSingle(f) => {
                 match is_push {
-                    true => do_function(*f, mouse),
-                    false => end_function(*f, mouse),
+                    true => do_function(f, mouse),
+                    false => end_function(f, mouse),
                 }
             },
             MacroType::MacroMultiple(s) => {
@@ -245,7 +271,7 @@ mod app {
         }
     }
 
-    #[task(binds=EXTI1, local = [right], shared = [mouse])]
+    #[task(binds=EXTI1, local = [right], shared = [mouse, macro_config])]
     fn right_hand(mut cx: right_hand::Context) {
         // this should be automatic
         cx.local.right.clear_interrupt_pending_bit();
@@ -253,13 +279,17 @@ mod app {
 
         if cx.local.right.is_low() {
             rprintln!("right low");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.release_right();
+            cx.shared.macro_config.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.right_button, mouse, false);
+                });
             });
         } else {
             rprintln!("right high");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.push_right();
+            cx.shared.macro_config.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.right_button, mouse, true);
+                });
             });
         }
     }

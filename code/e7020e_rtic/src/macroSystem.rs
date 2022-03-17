@@ -152,6 +152,7 @@ pub fn end_function(f: Function, mouse: &mut MouseKeyboardState) {
     }
 }
 
+#[derive(Copy, Clone)]
 pub enum MacroType {
     MacroMultiple(usize),
     MacroSingle(Function),
