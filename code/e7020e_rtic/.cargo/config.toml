@@ -4,12 +4,12 @@
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
 # uncomment ONE of these three option to make `cargo run` start a GDB session
-# which option to pick depends on your system
+# which option to pick depends on your systemunder
 # runner = "arm-none-eabi-gdb -q -x openocd.gdb"
 # runner = "gdb-multiarch -q -x openocd.gdb"
 # runner = "gdb -q -x openocd.gdb"
 # runner = "probe-run --chip STM32F411RETx"
-runner = "probe-run --chip STM32F401RETx"
+runner = "probe-run --chip STM32F401RETx --connect-under-reset"
 
 rustflags = [
   # This is needed if your flash or ram addresses are not aligned to 0x10000 in memory.x

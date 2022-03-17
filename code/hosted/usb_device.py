@@ -26,8 +26,10 @@ class usb_device:
         self.idVendor = vendor_id
         self.idProduct = product_id
         self.dev = get_usb_device(vendor_id,product_id)
+        self.interfaces = self.dev[0].interfaces()
         self.interface = self.dev[0].interfaces()[0].bInterfaceNumber
-        self.endpoint = self.dev[0].interfaces()[0].endpoints()[0]
+        self.endpoints = self.dev[0].interfaces()[0].endpoints()
+        self.endpoint = self.dev[0].interfaces()[0].endpoints()[1]
         self.endpoint_adress = self.endpoint.bEndpointAddress
     def disattach(self):
         if self.dev.is_kernel_driver_active(self.interface):
@@ -38,10 +40,10 @@ class usb_device:
         return self.dev.read(self.endpoint_adress,length)
     def write(self,data):
         # Writes a datapacket to the device
-        self.disattach()
+        #self.disattach()
         self.dev.write(self.endpoint_adress,data)
-        self.reset()
-        self.attach()
+        #self.reset()
+        #self.attach()
     def reset(self):
         self.dev.reset()
     def __repr__(self) -> str:
