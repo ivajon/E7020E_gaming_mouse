@@ -53,7 +53,6 @@ def print_ui():
     exit                -> exits the program
     """)
 while 1:
-    print(f"{mouse.interfaces},{mouse.endpoints}")
     user_inp = input("Enter a command: ").split()
     os.system('cls' if os.name == 'nt' else 'clear')
     if len(user_inp) == 0:

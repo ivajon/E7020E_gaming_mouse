@@ -1,4 +1,4 @@
-import usb.core
+import hid
 import numpy as np
 
 """
@@ -13,10 +13,14 @@ def to_byte(data : int,min_size :int = 2):
             ret = [0] + ret
         return ret
 def get_usb_device(vendor_id = 0, product_id = 0):
-    dev = usb.core.find(idVendor=vendor_id, idProduct=product_id)
-    if dev is None:
-        raise ValueError('Device not found')
-    return dev
+    h = hid.device()
+    h.open(vendor_id,product_id)
+    print("Manufacturer: %s" % h.get_manufacturer_string())
+    print("Product: %s" % h.get_product_string())
+    print("Serial No: %s" % h.get_serial_number_string())
+    # enable non-blocking mode
+    h.set_nonblocking(1)
+    return h
 """
     Defines a simple usb device driver
     Inteded for use with the HID mouse and keyboard
@@ -26,26 +30,10 @@ class usb_device:
         self.idVendor = vendor_id
         self.idProduct = product_id
         self.dev = get_usb_device(vendor_id,product_id)
-        self.interfaces = self.dev[0].interfaces()
-        self.interface = self.dev[0].interfaces()[0].bInterfaceNumber
-        self.endpoints = self.dev[0].interfaces()[0].endpoints()
-        self.endpoint = self.dev[0].interfaces()[0].endpoints()[1]
-        self.endpoint_adress = self.endpoint.bEndpointAddress
-    def disattach(self):
-        if self.dev.is_kernel_driver_active(self.interface):
-            self.dev.detach_kernel_driver(self.interface)
-    def attach(self):
-        self.dev.attach_kernel_driver(self.interface)
     def read(self,length):
-        return self.dev.read(self.endpoint_adress,length)
+        return self.dev.read()
     def write(self,data):
-        # Writes a datapacket to the device
-        #self.disattach()
-        self.dev.write(self.endpoint_adress,data)
-        #self.reset()
-        #self.attach()
-    def reset(self):
-        self.dev.reset()
+        self.dev.write(data)
     def __repr__(self) -> str:
         return f"<usb_device: {self.idVendor}:{self.idProduct}>"
     def __str__(self) -> str:

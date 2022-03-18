@@ -1,330 +1,441 @@
- /* hid_gadget_test */
+/**
+ * hidapitester.c -- Demonstrate HIDAPI via commandline
+ *
+ * 2019, Tod E. Kurt / github.com/todbot
+ *
+ */
 
-  #include <pthread.h>
-  #include <string.h>
-  #include <stdio.h>
-  #include <ctype.h>
-  #include <fcntl.h>
-  #include <errno.h>
-  #include <stdio.h>
-  #include <stdlib.h>
-  #include <unistd.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <getopt.h>
 
-  #define BUF_LEN 512
+#include "hidapi.h"
 
-  struct options {
-      const char    *opt;
-      unsigned char val;
-};
 
-static struct options kmod[] = {
-      {.opt = "--left-ctrl",          .val = 0x01},
-      {.opt = "--right-ctrl",         .val = 0x10},
-      {.opt = "--left-shift",         .val = 0x02},
-      {.opt = "--right-shift",        .val = 0x20},
-      {.opt = "--left-alt",           .val = 0x04},
-      {.opt = "--right-alt",          .val = 0x40},
-      {.opt = "--left-meta",          .val = 0x08},
-      {.opt = "--right-meta",         .val = 0x80},
-      {.opt = NULL}
-};
+#define MAX_STR 1024  // for manufacturer, product strings
+#define MAX_BUF 1024  // for buf reads & writes
 
-static struct options kval[] = {
-      {.opt = "--return",     .val = 0x28},
-      {.opt = "--esc",        .val = 0x29},
-      {.opt = "--bckspc",     .val = 0x2a},
-      {.opt = "--tab",        .val = 0x2b},
-      {.opt = "--spacebar",   .val = 0x2c},
-      {.opt = "--caps-lock",  .val = 0x39},
-      {.opt = "--f1",         .val = 0x3a},
-      {.opt = "--f2",         .val = 0x3b},
-      {.opt = "--f3",         .val = 0x3c},
-      {.opt = "--f4",         .val = 0x3d},
-      {.opt = "--f5",         .val = 0x3e},
-      {.opt = "--f6",         .val = 0x3f},
-      {.opt = "--f7",         .val = 0x40},
-      {.opt = "--f8",         .val = 0x41},
-      {.opt = "--f9",         .val = 0x42},
-      {.opt = "--f10",        .val = 0x43},
-      {.opt = "--f11",        .val = 0x44},
-      {.opt = "--f12",        .val = 0x45},
-      {.opt = "--insert",     .val = 0x49},
-      {.opt = "--home",       .val = 0x4a},
-      {.opt = "--pageup",     .val = 0x4b},
-      {.opt = "--del",        .val = 0x4c},
-      {.opt = "--end",        .val = 0x4d},
-      {.opt = "--pagedown",   .val = 0x4e},
-      {.opt = "--right",      .val = 0x4f},
-      {.opt = "--left",       .val = 0x50},
-      {.opt = "--down",       .val = 0x51},
-      {.opt = "--kp-enter",   .val = 0x58},
-      {.opt = "--up",         .val = 0x52},
-      {.opt = "--num-lock",   .val = 0x53},
-      {.opt = NULL}
-};
 
-int keyboard_fill_report(char report[8], char buf[BUF_LEN], int *hold)
+static void print_usage(char *myname)
 {
-      char *tok = strtok(buf, " ");
-      int key = 0;
-      int i = 0;
+    fprintf(stderr,
+"Usage: \n"
+"  %s <cmd> [options]\n"
+"where <cmd> is one of:\n"
+"  --vidpid <vid/pid>          Filter by vendorId/productId (comma/slash delim)\n"
+"  --usagePage <number>        Filter by usagePage \n"
+"  --usage <number>            Filter by usage \n"
+"  --list                      List HID devices (by filters)\n"
+"  --list-usages               List HID devices w/ usages (by filters)\n"
+"  --list-detail               List HID devices w/ details (by filters)\n"
+"  --open                      Open device with previously selected filters\n"
+"  --open-path <pathstr>       Open device by path (as in --list-detail) \n"
+"  --close                     Close currently open device \n"
+"  --send-feature <datalist>   Send Feature report (1st byte reportId, if used)\n"
+"  --read-feature <reportId>   Read Feature report (w/ reportId, 0 if unused) \n"
+"  --send-output <datalist>    Send Ouput report to device \n"
+"  --read-input [reportId]     Read Input report (w/ opt. reportId, if unused)\n"
+"  --read-input-forever [rId]  Read Input reports in a loop forever \n"
+"  --length <len>, -l <len>    Set buffer length in bytes of report to send/read\n"
+"  --timeout <msecs>           Timeout in millisecs to wait for input reads \n"
+"  --base <base>, -b <base>    Set decimal or hex buffer print mode\n"
+"  --quiet, -q                 Print out nothing except when reading data \n"
+"  --verbose, -v               Print out extra information\n"
+"\n"
+"Notes: \n"
+" . Commands are executed in order. \n"
+" . --vidpid, --usage, --usagePage act as filters to --open and --list \n"
+"\n"
+"Examples: \n"
+". List all devices \n"
+"   hidapitester --list \n"
+". List details of all devices w/ vendorId 0x2341 \n"
+"   hidapitester --vidpid 2341 --list-detail \n"
+". Open device with usagePage 0xFFAB, send Feature report on reportId 1\n"
+"   hidapitester -l 9 --usagePage 0xFFAB --open --send-feature 1,99,44,22 \n"
+". Open vid/pid xxxx:yyyy, send 64-byte Output report, read 64-byte Input report\n"
+"   hidapitester --vidpid xxxx:yyyy -l 64 --open --send-output 1,2,3 --read-input \n"
+". Read Input report continuously with 1500 msec timeout \n"
+"   hidapitester --vidpid xxxx:yyyy -l 64 -t 1500 --open --read-input-forever\n"
+". Send FadeToRGB #FF00FF command to blink(1)\n"
+"   hidapitester --vidpid 27b8:01ed -l 9 --open --send-feature 1,99,255,0,255\n"
+"\n"
+""
 
-      for (; tok != NULL; tok = strtok(NULL, " ")) {
-
-              if (strcmp(tok, "--quit") == 0)
-                      return -1;
-
-              if (strcmp(tok, "--hold") == 0) {
-                      *hold = 1;
-                      continue;
-              }
-
-              if (key < 6) {
-                      for (i = 0; kval[i].opt != NULL; i++)
-                              if (strcmp(tok, kval[i].opt) == 0) {
-                                      report[2 + key++] = kval[i].val;
-                                      break;
-                              }
-                      if (kval[i].opt != NULL)
-                              continue;
-              }
-
-              if (key < 6)
-                      if (islower(tok[0])) {
-                              report[2 + key++] = (tok[0] - ('a' - 0x04));
-                              continue;
-                      }
-
-              for (i = 0; kmod[i].opt != NULL; i++)
-                      if (strcmp(tok, kmod[i].opt) == 0) {
-                              report[0] = report[0] | kmod[i].val;
-                              break;
-                      }
-              if (kmod[i].opt != NULL)
-                      continue;
-
-              if (key < 6)
-                      fprintf(stderr, "unknown option: %s\n", tok);
-      }
-      return 8;
+"", myname);
 }
 
-static struct options mmod[] = {
-      {.opt = "--b1", .val = 0x01},
-      {.opt = "--b2", .val = 0x02},
-      {.opt = "--b3", .val = 0x04},
-      {.opt = NULL}
+// local states for the "cmd" option variable
+enum {
+    CMD_NONE = 0,
+    CMD_VIDPID,
+    CMD_USAGE,
+    CMD_USAGEPAGE,
+    CMD_LIST,
+    CMD_LIST_USAGES,
+    CMD_LIST_DETAIL,
+    CMD_OPEN,
+    CMD_OPEN_PATH,
+    CMD_CLOSE,
+    CMD_SEND_OUTPUT,
+    CMD_SEND_FEATURE,
+    CMD_READ_INPUT,
+    CMD_READ_FEATURE,
+    CMD_READ_INPUT_FOREVER,
 };
 
-int mouse_fill_report(char report[8], char buf[BUF_LEN], int *hold)
+bool msg_quiet = false;
+bool msg_verbose = false;
+
+int print_base = 16; // 16 or 10, hex or decimal
+int print_width = 32; // how many characters per line
+/**
+ * printf that can be shut up
+ */
+void msg(char* fmt, ...)
 {
-      char *tok = strtok(buf, " ");
-      int mvt = 0;
-      int i = 0;
-      for (; tok != NULL; tok = strtok(NULL, " ")) {
-
-              if (strcmp(tok, "--quit") == 0)
-                      return -1;
-
-              if (strcmp(tok, "--hold") == 0) {
-                      *hold = 1;
-                      continue;
-              }
-
-              for (i = 0; mmod[i].opt != NULL; i++)
-                      if (strcmp(tok, mmod[i].opt) == 0) {
-                              report[0] = report[0] | mmod[i].val;
-                              break;
-                      }
-              if (mmod[i].opt != NULL)
-                      continue;
-
-              if (!(tok[0] == '-' && tok[1] == '-') && mvt < 2) {
-                      errno = 0;
-                      report[1 + mvt++] = (char)strtol(tok, NULL, 0);
-                      if (errno != 0) {
-                              fprintf(stderr, "Bad value:'%s'\n", tok);
-                              report[1 + mvt--] = 0;
-                      }
-                      continue;
-              }
-
-              fprintf(stderr, "unknown option: %s\n", tok);
-      }
-      return 3;
+    va_list args;
+    va_start(args,fmt);
+    if(!msg_quiet) { vprintf(fmt,args); }
+    va_end(args);
+}
+/**
+ * printf that is wordy
+ */
+void msginfo(char* fmt, ...)
+{
+    va_list args;
+    va_start(args,fmt);
+    if(msg_verbose) { vprintf(fmt,args); }
+    va_end(args);
 }
 
-static struct options jmod[] = {
-      {.opt = "--b1",         .val = 0x10},
-      {.opt = "--b2",         .val = 0x20},
-      {.opt = "--b3",         .val = 0x40},
-      {.opt = "--b4",         .val = 0x80},
-      {.opt = "--hat1",       .val = 0x00},
-      {.opt = "--hat2",       .val = 0x01},
-      {.opt = "--hat3",       .val = 0x02},
-      {.opt = "--hat4",       .val = 0x03},
-      {.opt = "--hatneutral", .val = 0x04},
-      {.opt = NULL}
-};
-
-int joystick_fill_report(char report[8], char buf[BUF_LEN], int *hold)
+/**
+ * print out a buffer of len bufsize in decimal or hex form
+ */
+void printbuf(uint8_t* buf, int bufsize, int base, int width)
 {
-      char *tok = strtok(buf, " ");
-      int mvt = 0;
-      int i = 0;
-
-      *hold = 1;
-
-      /* set default hat position: neutral */
-      report[3] = 0x04;
-
-      for (; tok != NULL; tok = strtok(NULL, " ")) {
-
-              if (strcmp(tok, "--quit") == 0)
-                      return -1;
-
-              for (i = 0; jmod[i].opt != NULL; i++)
-                      if (strcmp(tok, jmod[i].opt) == 0) {
-                              report[3] = (report[3] & 0xF0) | jmod[i].val;
-                              break;
-                      }
-              if (jmod[i].opt != NULL)
-                      continue;
-
-              if (!(tok[0] == '-' && tok[1] == '-') && mvt < 3) {
-                      errno = 0;
-                      report[mvt++] = (char)strtol(tok, NULL, 0);
-                      if (errno != 0) {
-                              fprintf(stderr, "Bad value:'%s'\n", tok);
-                              report[mvt--] = 0;
-                      }
-                      continue;
-              }
-
-              fprintf(stderr, "unknown option: %s\n", tok);
-      }
-      return 4;
+    for( int i=0 ; i<bufsize; i++) {
+        if( base==10 ) {
+            printf(" %3d", buf[i]);
+        } else if( base==16 ) {
+            printf(" %02X", buf[i] );
+        }
+       // if (i % 16 == 15 && i < bufsize-1) printf("\n");
+       if (i % width == width-1 && i < bufsize-1) printf("\n");
+    }
+    printf("\n");
 }
 
-void print_options(char c)
+/**
+ * Parse a comma-delimited 'string' containing numbers (dec,hex)
+ * into a array'buffer' (of element size 'bufelem_size') and
+ * of max length 'buflen', using delimiter 'delim_str'
+ * Returns number of bytes written
+ */
+int str2buf(void* buffer, char* delim_str, char* string, int buflen, int bufelem_size)
 {
-      int i = 0;
-
-      if (c == 'k') {
-              printf("        keyboard options:\n"
-                     "                --hold\n");
-              for (i = 0; kmod[i].opt != NULL; i++)
-                      printf("\t\t%s\n", kmod[i].opt);
-              printf("\n      keyboard values:\n"
-                     "                [a-z] or\n");
-              for (i = 0; kval[i].opt != NULL; i++)
-                      printf("\t\t%-8s%s", kval[i].opt, i % 2 ? "\n" : "");
-              printf("\n");
-      } else if (c == 'm') {
-              printf("        mouse options:\n"
-                     "                --hold\n");
-              for (i = 0; mmod[i].opt != NULL; i++)
-                      printf("\t\t%s\n", mmod[i].opt);
-              printf("\n      mouse values:\n"
-                     "                Two signed numbers\n"
-                     "--quit to close\n");
-      } else {
-              printf("        joystick options:\n");
-              for (i = 0; jmod[i].opt != NULL; i++)
-                      printf("\t\t%s\n", jmod[i].opt);
-              printf("\n      joystick values:\n"
-                     "                three signed numbers\n"
-                     "--quit to close\n");
-      }
+    char    *s;
+    int     pos = 0;
+    if( string==NULL ) return -1;
+    memset(buffer,0,buflen);  // bzero() not defined on Win32?
+    while((s = strtok(string, delim_str)) != NULL && pos < buflen){
+        string = NULL;
+        switch(bufelem_size) {
+        case 1:
+            ((uint8_t*)buffer)[pos++] = (uint8_t)strtol(s, NULL, 0); break;
+        case 2:
+            ((int*)buffer)[pos++] = (int)strtol(s, NULL, 0); break;
+        }
+    }
+    return pos;
 }
 
-int main(int argc, const char *argv[])
+/**
+ *
+ */
+int main(int argc, char* argv[])
 {
-      const char *filename = NULL;
-      int fd = 0;
-      char buf[BUF_LEN];
-      int cmd_len;
-      char report[8];
-      int to_send = 8;
-      int hold = 0;
-      fd_set rfds;
-      int retval, i;
+    uint8_t buf[MAX_BUF];   // data buffer for send/recv
+    wchar_t wstr[MAX_STR];  // string buffer for USB strings
+    hid_device *dev = NULL; // HIDAPI device we will open
+    int res;
+    int i;
+    int buflen = 64;        // length of buf in use
+    int cmd = CMD_NONE;     //
+    int timeout_millis = 250;
 
-      if (argc < 3) {
-              fprintf(stderr, "Usage: %s devname mouse|keyboard|joystick\n",
-                      argv[0]);
-              return 1;
-      }
+    uint16_t vid = 0;        // productId
+    uint16_t pid = 0;        // vendorId
+    uint16_t usage_page = 0; // usagePage to search for, if any
+    uint16_t usage = 0;      // usage to search for, if any
+    char devpath[MAX_STR];   // path to open, if filter by usage
 
-      if (argv[2][0] != 'k' && argv[2][0] != 'm' && argv[2][0] != 'j')
-        return 2;
+    setbuf(stdout, NULL);  // turn off buffering of stdout
 
-      filename = argv[1];
+    if(argc < 2){
+        print_usage( "hidapitester" );
+        exit(1);
+    }
 
-      if ((fd = open(filename, O_RDWR, 0666)) == -1) {
-              perror(filename);
-              return 3;
-      }
+    struct option longoptions[] =
+        {
+         {"help", no_argument, 0, 'h'},
+         {"verbose",      no_argument, 0,            'v'},
+         {"quiet",        optional_argument, 0,      'q'},
+         {"timeout",      required_argument, 0,      't'},
+         {"length",       required_argument, 0,      'l'},
+         {"buflen",       required_argument, 0,      'l'},
+         {"base",         required_argument, 0,      'b'},
+         {"vidpid",       required_argument, &cmd,   CMD_VIDPID},
+         {"usage",        required_argument, &cmd,   CMD_USAGE},
+         {"usagePage",    required_argument, &cmd,   CMD_USAGEPAGE},
+         {"list",         no_argument,       &cmd,   CMD_LIST},
+         {"list-usages",  no_argument,       &cmd,   CMD_LIST_USAGES},
+         {"list-detail",  no_argument,       &cmd,   CMD_LIST_DETAIL},
+         {"open",         no_argument,       &cmd,   CMD_OPEN},
+         {"open-path",    required_argument, &cmd,   CMD_OPEN_PATH},
+         {"close",        no_argument,       &cmd,   CMD_CLOSE},
+         {"send-output",  required_argument, &cmd,   CMD_SEND_OUTPUT},
+         {"send-out",     required_argument, &cmd,   CMD_SEND_OUTPUT},
+         {"send-feature", required_argument, &cmd,   CMD_SEND_FEATURE},
+         {"read-input",   optional_argument, &cmd,   CMD_READ_INPUT},
+         {"read-in",      optional_argument, &cmd,   CMD_READ_INPUT},
+         {"read-feature", required_argument, &cmd,   CMD_READ_FEATURE},
+         {"read-input-forever",  optional_argument, &cmd,   CMD_READ_INPUT_FOREVER},
+         {NULL,0,0,0}
+        };
+    char* shortopts = "vht:l:qb:";
 
-      print_options(argv[2][0]);
+    bool done = false;
+    int option_index = 0, opt;
+    while(!done) {
+        memset(buf,0, MAX_BUF);   // reset buffers
+        memset(devpath,0,MAX_STR);
 
-      while (42) {
+        opt = getopt_long(argc, argv, shortopts, longoptions, &option_index);
+        if (opt==-1) done = true; // parsed all the args
+        switch(opt) {
+        case 0:                   // long opts with no short opts
 
-              FD_ZERO(&rfds);
-              FD_SET(STDIN_FILENO, &rfds);
-              FD_SET(fd, &rfds);
+            if( cmd == CMD_VIDPID ) {
 
-              retval = select(fd + 1, &rfds, NULL, NULL, NULL);
-              if (retval == -1 && errno == EINTR)
-                      continue;
-              if (retval < 0) {
-                      perror("select()");
-                      return 4;
-              }
+                if( sscanf(optarg, "%4hx/%4hx", &vid,&pid) !=2 ) {  // match "23FE/AB12"
+                    if( !sscanf(optarg, "%4hx:%4hx", &vid,&pid) ) { // match "23FE:AB12"
+                        // else try parsing standard dec/hex values
+                        int wordbuf[4]; // a little extra space
+                        int parsedlen = str2buf(wordbuf, ":/, ", optarg, sizeof(wordbuf), 2);
+                        vid = wordbuf[0]; pid = wordbuf[1];
+                    }
+                }
+                msginfo("Looking for vid/pid 0x%04X / 0x%04X  (%d / %d)\n",vid,pid,vid,pid);
+            }
+            else if( cmd == CMD_USAGEPAGE ) {
 
-              if (FD_ISSET(fd, &rfds)) {
-                      cmd_len = read(fd, buf, BUF_LEN - 1);
-                      printf("recv report:");
-                      for (i = 0; i < cmd_len; i++)
-                              printf(" %02x", buf[i]);
-                      printf("\n");
-              }
+                if( (usage_page = strtol(optarg,NULL,0)) == 0 ) { // if bad parse
+                    sscanf(optarg, "%4hx", &usage_page ); // try bare "ABCD"
+                }
 
-              if (FD_ISSET(STDIN_FILENO, &rfds)) {
-                      memset(report, 0x0, sizeof(report));
-                      cmd_len = read(STDIN_FILENO, buf, BUF_LEN - 1);
+                msginfo("Set usagePage to 0x%04hX (%d)\n", usage_page,usage_page);
+            }
+            else if( cmd == CMD_USAGE ) {
 
-                      if (cmd_len == 0)
-                              break;
+                if( (usage = strtol(optarg,NULL,0)) == 0 ) { // if bad parse
+                    sscanf(optarg, "%4hx", &usage ); // try bare "ABCD"
+                }
+                msginfo("Set usage to 0x%04hX (%d)\n", usage,usage);
+            }
+            else if( cmd == CMD_LIST ||
+                     cmd == CMD_LIST_USAGES ||
+                     cmd == CMD_LIST_DETAIL ) {
 
-                      buf[cmd_len - 1] = '\0';
-                      hold = 0;
+                struct hid_device_info *devs, *cur_dev;
+                devs = hid_enumerate(vid,pid); // 0,0 = find all devices
+                cur_dev = devs;
+                while (cur_dev) {
+                    if( (!usage_page || cur_dev->usage_page == usage_page) &&
+                        (!usage || cur_dev->usage == usage) ) {
+                        if( cmd == CMD_LIST_USAGES ) {
+                            printf("%04X/%04X / %04hX/%04hX  %ls - %ls\n",
+                                   cur_dev->vendor_id, cur_dev->product_id,
+                                   cur_dev->usage_page, cur_dev->usage ,
+                                   cur_dev->manufacturer_string, cur_dev->product_string );
+                        }
+                        else {
+                            printf("%04X/%04X: %ls - %ls\n",
+                                   cur_dev->vendor_id, cur_dev->product_id,
+                                   cur_dev->manufacturer_string, cur_dev->product_string );
+                        }
+                        
+                        if( cmd == CMD_LIST_DETAIL ) {
+                            printf("  vendorId:      0x%04hX\n", cur_dev->vendor_id);
+                            printf("  productId:     0x%04hX\n", cur_dev->product_id);
+                            printf("  usagePage:     0x%04hX\n", cur_dev->usage_page);
+                            printf("  usage:         0x%04hX\n", cur_dev->usage );
+                            printf("  serial_number: %ls \n", cur_dev->serial_number);
+                            printf("  interface:     %d \n", cur_dev->interface_number);
+                            printf("  path: %s\n",cur_dev->path);
+                            printf("\n");
+                        }
+                    }
+                    cur_dev = cur_dev->next;
+                }
+                hid_free_enumeration(devs);
+            }
+            else if( cmd == CMD_OPEN ) {
+                if( vid && pid && !usage_page && !usage ) {
+                    msg("Opening device, vid/pid: 0x%04X/0x%04X\n",vid,pid);
+                    dev = hid_open(vid,pid,NULL);
+                }
+                else {
+                    msg("Opening device, vid/pid:0x%04X/0x%04X, usagePage/usage: %X/%X\n",
+                        vid,pid,usage_page,usage);
 
-                      memset(report, 0x0, sizeof(report));
-                      if (argv[2][0] == 'k')
-                              to_send = keyboard_fill_report(report, buf, &hold);
-                      else if (argv[2][0] == 'm')
-                              to_send = mouse_fill_report(report, buf, &hold);
-                      else
-                              to_send = joystick_fill_report(report, buf, &hold);
+                    struct hid_device_info *devs, *cur_dev;
+                    devs = hid_enumerate(vid, pid); // 0,0 = find all devices
+                    cur_dev = devs;
+                    while (cur_dev) {
+                        if( (!vid || cur_dev->vendor_id == vid) &&
+                            (!pid || cur_dev->product_id == pid) &&
+                            (!usage_page || cur_dev->usage_page == usage_page) &&
+                            (!usage || cur_dev->usage == usage) ) {
+                            strncpy(devpath, cur_dev->path, MAX_STR); // save it!
+                        }
+                        cur_dev = cur_dev->next;
+                    }
+                    hid_free_enumeration(devs);
 
-                      if (to_send == -1)
-                              break;
+                    if( devpath[0] ) {
+                        dev = hid_open_path(devpath);
+                        if( dev==NULL ) {
+                            msg("Error: could not open device\n");
+                        }
+                        else {
+                            msg("Device opened\n");
+                        }
+                    }
+                    else {
+                        msg("Error: no matching devices\n");
+                    }
+                }
+            }
+            else if( cmd == CMD_OPEN_PATH ) {
 
-                      if (write(fd, report, to_send) != to_send) {
-                              perror(filename);
-                              return 5;
-                      }
-                      if (!hold) {
-                              memset(report, 0x0, sizeof(report));
-                              if (write(fd, report, to_send) != to_send) {
-                                      perror(filename);
-                                      return 6;
-                              }
-                      }
-              }
-      }
+                msg("Opening device. path: %s\n",optarg);
+                dev = hid_open_path(optarg);
+                if( dev==NULL ) {
+                    msg("Error: could not open device\n");
+                }
+            }
+            else if( cmd == CMD_CLOSE ) {
 
-      close(fd);
-      return 0;
-}
+                msg("Closing device\n");
+                if(dev) {
+                    hid_close(dev);
+                    dev = NULL;
+                }
+            }
+            else if( cmd == CMD_SEND_OUTPUT  ||
+                     cmd == CMD_SEND_FEATURE ) {
+
+                int parsedlen = str2buf(buf, ", ", optarg, sizeof(buf), 1);
+                if( parsedlen<1 ) { // no bytes or error
+                    msg("Error: no bytes read as arg to --send...");
+                    break;
+                }
+                buflen = (!buflen) ? parsedlen : buflen;
+
+                if( !dev ) {
+                    msg("Error on send: no device opened.\n"); break;
+                }
+                if( cmd == CMD_SEND_OUTPUT ) {
+                    msg("Writing output report of %d-bytes...",buflen);
+                    res = hid_write(dev, buf, buflen);
+                }
+                else {
+                    msg("Writing %d-byte feature report...",buflen);
+                    res = hid_send_feature_report(dev, buf, buflen);
+                }
+                msg("wrote %d bytes:\n", res);
+                if(!msg_quiet) { printbuf(buf,buflen, print_base, print_width); }
+            }
+            else if( cmd == CMD_READ_INPUT ||
+                     cmd == CMD_READ_INPUT_FOREVER ) {
+
+                if( !dev ) {
+                    msg("Error on read: no device opened.\n"); break;
+                }
+                if( !buflen) {
+                    msg("Error on read: buffer length is 0. Use --len to specify.\n"); break;
+                }
+                uint8_t report_id = (optarg) ? strtol(optarg,NULL,10) : 0;
+                do {
+                    msg("Reading %d-byte input report %d, %d msec timeout...",
+                      buflen, report_id, timeout_millis);
+                    res = hid_read_timeout(dev, buf, buflen, timeout_millis);
+                    msg("read %d bytes:\n", res);
+                    if( res > 0 ) {
+                        printbuf(buf,buflen, print_base, print_width);
+                        memset(buf,0,buflen);  // clear it out
+                    }
+                    else if( res == -1 )  { // removed device
+                        cmd = CMD_CLOSE;
+                        break;
+                    }
+                } while( cmd == CMD_READ_INPUT_FOREVER );
+            }
+            else if( cmd == CMD_READ_FEATURE ) {
+
+                if( !dev ) {
+                    msg("Error on read: no device opened.\n"); break;
+                }
+                if( !buflen) {
+                    msg("Error on read: buffer length is 0. Use --len to specify.\n");
+                    break;
+                }
+                uint8_t report_id = (optarg) ? strtol(optarg,NULL,10) : 0;
+                buf[0] = report_id;
+                msg("Reading %d-byte feature report, report_id %d...",buflen, report_id);
+                res = hid_get_feature_report(dev, buf, buflen);
+                msg("read %d bytes:\n",res);
+                printbuf(buf, buflen, print_base, print_width);
+            }
+
+            break; // case 0 (longopts without shortops)
+        case 'h':
+            print_usage("hidapitester");
+            break;
+        case 'l':
+            buflen = strtol(optarg,NULL,10);
+            msginfo("Set buflen to %d\n", buflen);
+            break;
+        case 't':
+            timeout_millis = strtol(optarg,NULL,10);
+            msginfo("Set timeout_millis to %d\n", timeout_millis);
+            break;
+        case 'b':
+            print_base = strtol(optarg,NULL,10);
+            msginfo("Set print_base to %d\n", print_base);
+            break;
+        case 'q':
+            msg_quiet = true;
+            break;
+        case 'v':
+            msg_verbose = true;
+            break;
+        } // switch(opt)
+
+
+    } // while(!done)
+
+    if(dev) {
+        msg("Closing device\n");
+        hid_close(dev);
+    }
+    res = hid_exit();
+
+} // main
