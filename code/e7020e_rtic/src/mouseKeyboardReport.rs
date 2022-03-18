@@ -153,6 +153,7 @@ impl MouseKeyboardState {
         self.sensor.increment_dpi(direction);
     }
     pub fn write_dpi(&mut self, dpi: u16) {
+        rprintln!("{:}",dpi);
         self.sensor.set_dpi(dpi);
     }
 

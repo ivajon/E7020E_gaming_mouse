@@ -186,7 +186,7 @@ mod app {
 
         let mouse = MouseKeyboardState::new(pmw3389);
         let usb_dev =
-            UsbDeviceBuilder::new(cx.local.bus.as_ref().unwrap(), UsbVidPid(0xc410, 0x1234))
+            UsbDeviceBuilder::new(cx.local.bus.as_ref().unwrap(), UsbVidPid(0xc410, 0x000))
                 .manufacturer("Ivar och Erik")
                 .product("Banger gaming mus")
                 .serial_number("1234")
@@ -258,11 +258,34 @@ mod app {
             });
         }
     }
-    
-    #[task(binds=EXTI9_5, local = [front], shared = [mouse,EXTI])]
+    #[task(binds=EXTI2, local = [phase_a], shared = [mouse])]
+    fn phase_a_hand(mut cx: phase_a_hand::Context) {
+        // this should be automatic
+        cx.local.phase_a.clear_interrupt_pending_bit();
+
+        if cx.local.phase_a.is_low() {
+            rprintln!("phase_a low");
+            cx.shared.mouse.lock(|mouse| {
+            });
+        } else {
+            rprintln!("phase_a high");
+            cx.shared.mouse.lock(|mouse| {
+            });
+        }
+    }
+    #[task(binds=EXTI9_5, local = [front,phase_b], shared = [mouse,EXTI])]
     fn front_hand(mut cx: front_hand::Context) {
         cx.local.front.clear_interrupt_pending_bit();
-
+        cx.local.phase_b.clear_interrupt_pending_bit();
+        if cx.local.phase_b.is_low() {
+            rprintln!("phase_b low");
+            cx.shared.mouse.lock(|mouse| {
+            });
+        } else {
+            rprintln!("phase_b high");
+            cx.shared.mouse.lock(|mouse| {
+            });
+        }
 
         // Temporarelly disable interrupts
         cx.shared.EXTI.lock(|EXTI|{
@@ -395,6 +418,7 @@ mod app {
     }
     #[task(shared = [mouse])]
     fn handle_dpi(mut cx : handle_dpi::Context,dpi : u16){
+        rprintln!("{:}",dpi);
         cx.shared.mouse.lock(|mouse| {
             mouse.write_dpi(dpi);
         });
