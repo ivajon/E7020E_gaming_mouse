@@ -69,7 +69,6 @@ impl MouseKeyboardState {
     }
 
     pub fn push_right(&mut self) {
-        rprintln!("push_right state");
         self.right_button = true;
     }
 
