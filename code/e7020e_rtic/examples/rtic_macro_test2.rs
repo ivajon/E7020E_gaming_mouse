@@ -176,13 +176,24 @@ mod app {
 
         let hid = HIDClass::new(
             cx.local.bus.as_ref().unwrap(),
-            MouseReport::desc(),
+            MouseKeyboard::desc(),
             POLL_INTERVAL_MS,
         );
 
         let mouse = MouseKeyboardState::new();
 
-        let macro_config = MacroConfig::new();
+        let mut macro_config = MacroConfig::new();
+
+        // change macro config to test
+        macro_config.update_config(
+            MacroType::MacroSingle(Function::Nothing),
+            MacroType::MacroSingle(Function::PressKeyboard(4)),
+            MacroType::MacroSingle(Function::LeftClick),
+            MacroType::MacroSingle(Function::Nothing),
+            MacroType::MacroSingle(Function::Nothing),
+            MacroType::MacroSingle(Function::Nothing),
+            MacroType::MacroSingle(Function::Nothing),
+        );
 
 
         let usb_dev =
@@ -353,6 +364,7 @@ mod app {
             first,
             counter,
         } = cx.local;
+
 
         if *first {
             rprintln!("first");
