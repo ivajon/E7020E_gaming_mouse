@@ -187,13 +187,36 @@ mod app {
         // change macro config to test
         macro_config.update_config(
             MacroType::MacroSingle(Function::Nothing),
-            MacroType::MacroSingle(Function::PressKeyboard(4)),
-            MacroType::MacroSingle(Function::LeftClick),
+            MacroType::MacroMultiple(0),
+            MacroType::MacroMultiple(1),
             MacroType::MacroSingle(Function::Nothing),
             MacroType::MacroSingle(Function::Nothing),
             MacroType::MacroSingle(Function::Nothing),
             MacroType::MacroSingle(Function::Nothing),
         );
+
+        // change macro 0
+        let functions = [
+            Function::PressKeyboard(04),
+            Function::PressKeyboard(05),
+            Function::PressKeyboard(06),
+            Function::PressKeyboard(07),
+            Function::PressKeyboard(08),
+        ];
+        let delays = [10, 10, 20, 1000, 50];
+        let times = [5, 5, 5, 5, 3000];
+        macro_config.change_macro(0, functions, delays, times);
+
+        let functions = [
+            Function::PressKeyboard(04),
+            Function::PressKeyboard(05),
+            Function::End,
+            Function::Nothing,
+            Function::PressKeyboard(05),
+        ];
+        let delays = [10, 10, 20, 1000, 50];
+        let times = [5, 5, 5, 5, 3000];
+        macro_config.change_macro(1, functions, delays, times);
 
 
         let usb_dev =
@@ -211,22 +234,28 @@ mod app {
         )
     }
 
-    #[task(shared = [mouse])]
+    #[task(shared = [mouse], priority = 1, capacity = 100)]
     fn end_macro(mut cx: end_macro::Context, f: Function) {
         cx.shared.mouse.lock(|mouse| {
             end_function(f, mouse);
         });
     }
 
-    #[task(shared = [mouse, macro_config])]
+    #[task(shared = [mouse, macro_config], priority = 1, capacity = 100)]
     fn do_macro(mut cx: do_macro::Context, m: usize, i: usize) {
         cx.shared.macro_config.lock(|conf| {
+            if i == MACRO_SIZE {
+                return;
+            }
             let (function, delay, time) = conf.get_macro_params(m, i);
+            if matches!(function, Function::End) {
+                return;
+            }
             cx.shared.mouse.lock(|mouse| {
                 do_function(function, mouse);
             });
             do_macro::spawn_after(delay.millis(), m, i + 1).unwrap();
-            end_macro::spawn_after(time.millis(), function);
+            end_macro::spawn_after(time.millis(), function).unwrap();
         });
     }
 
@@ -239,27 +268,36 @@ mod app {
                 }
             },
             MacroType::MacroMultiple(s) => {
-                let ms = conf.get_macro_first_delay(s);
-                do_macro::spawn_after(ms.millis(), s, 0).unwrap();
+                match is_push {
+                    true => {
+                        let ms = conf.get_macro_first_delay(s);
+                        do_macro::spawn_after(ms.millis(), s, 0).unwrap();
+                    }
+                    _ => (),
+                }
             }
         }
     }
 
-    #[task(binds=EXTI15_10, local = [middle,motion], shared = [mouse])]
+    #[task(binds=EXTI15_10, local = [middle,motion], shared = [mouse, macro_config])]
     fn middle_hand(mut cx: middle_hand::Context) {
         // this should be automatic
         cx.local.middle.clear_interrupt_pending_bit();
         
         if cx.local.middle.is_low() {
-                rprintln!("middle low");
+            rprintln!("right low");
+            cx.shared.macro_config.lock(|conf| {
                 cx.shared.mouse.lock(|mouse| {
-                    mouse.release_middle();
+                    handle_macro(conf, conf.middle_button, mouse, false);
                 });
-            } else if cx.local.middle.is_high() {
-                rprintln!("middle high");
+            });
+        } else {
+            rprintln!("right high");
+            cx.shared.macro_config.lock(|conf| {
                 cx.shared.mouse.lock(|mouse| {
-                    mouse.push_middle();
+                    handle_macro(conf, conf.middle_button, mouse, true);
                 });
+            });
         }
         
     }

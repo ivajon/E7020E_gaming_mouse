@@ -1,6 +1,6 @@
 use crate::mouseKeyboardReport::MouseKeyboardState;
 
-const MACRO_SIZE: usize = 5;
+pub const MACRO_SIZE: usize = 5;
 
 pub struct MacroConfig {
     pub left_button: MacroType,
@@ -35,9 +35,9 @@ impl MacroSequence {
 
     fn get_parameters(&self, i: usize) -> (Function, u32, u32) {
         if i == MACRO_SIZE - 1 {
-            (self.functions[i], self.delays[i+1], self.hold_times[i])
-        } else {
             (self.functions[i], 0, self.hold_times[i])
+        } else {
+            (self.functions[i], self.delays[i+1], self.hold_times[i])
         }
     }
 

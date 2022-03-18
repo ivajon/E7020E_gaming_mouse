@@ -74,8 +74,14 @@
                 }
             }, MacroType :: MacroMultiple(s) =>
             {
-                let ms = conf.get_macro_first_delay(s) ; do_macro ::
-                spawn_after(ms.millis(), s, 0).unwrap() ;
+                match is_push
+                {
+                    true =>
+                    {
+                        let ms = conf.get_macro_first_delay(s) ; do_macro ::
+                        spawn_after(ms.millis(), s, 0).unwrap() ;
+                    } _ => (),
+                }
             }
         }
     } #[doc = r" User code end"] #[inline(always)] #[allow(non_snake_case)] fn
@@ -132,10 +138,30 @@
         back.trigger_on_edge(& mut dp.EXTI, Edge :: RisingFalling) ;
         cx.local.bus.replace(UsbBus :: new(usb, cx.local.EP_MEMORY)) ; let hid
         = HIDClass ::
-        new(cx.local.bus.as_ref().unwrap(), MouseReport :: desc(),
+        new(cx.local.bus.as_ref().unwrap(), MouseKeyboard :: desc(),
             POLL_INTERVAL_MS,) ; let mouse = MouseKeyboardState :: new() ; let
-        macro_config = MacroConfig :: new() ; let usb_dev = UsbDeviceBuilder
-        ::
+        mut macro_config = MacroConfig :: new() ;
+        macro_config.update_config(MacroType ::
+                                   MacroSingle(Function :: Nothing), MacroType
+                                   :: MacroMultiple(0), MacroType ::
+                                   MacroMultiple(1), MacroType ::
+                                   MacroSingle(Function :: Nothing), MacroType
+                                   :: MacroSingle(Function :: Nothing),
+                                   MacroType ::
+                                   MacroSingle(Function :: Nothing), MacroType
+                                   :: MacroSingle(Function :: Nothing),) ; let
+        functions =
+        [Function :: PressKeyboard(04), Function :: PressKeyboard(05),
+         Function :: PressKeyboard(06), Function :: PressKeyboard(07),
+         Function :: PressKeyboard(08),] ; let delays = [10, 10, 20, 1000, 50]
+        ; let times = [5, 5, 5, 5, 3000] ;
+        macro_config.change_macro(0, functions, delays, times) ; let functions
+        =
+        [Function :: PressKeyboard(04), Function :: PressKeyboard(05),
+         Function :: End, Function :: Nothing, Function :: PressKeyboard(05),]
+        ; let delays = [10, 10, 20, 1000, 50] ; let times = [5, 5, 5, 5, 3000]
+        ; macro_config.change_macro(1, functions, delays, times) ; let usb_dev
+        = UsbDeviceBuilder ::
         new(cx.local.bus.as_ref().unwrap(),
             UsbVidPid(0xc410,
                       0x0000)).manufacturer("Ivar och Erik").product("Banger gaming mus").serial_number("1234").device_class(0).build()
@@ -153,12 +179,32 @@
         cx.local.middle.clear_interrupt_pending_bit() ; if
         cx.local.middle.is_low()
         {
-            rprintln! ("middle low") ;
-            cx.shared.mouse.lock(| mouse | { mouse.release_middle() ; }) ;
-        } else if cx.local.middle.is_high()
+            rprintln! ("right low") ;
+            cx.shared.macro_config.lock(| conf |
+                                        {
+                                            cx.shared.mouse.lock(| mouse |
+                                                                 {
+                                                                     handle_macro(conf,
+                                                                                  conf.middle_button,
+                                                                                  mouse,
+                                                                                  false)
+                                                                     ;
+                                                                 }) ;
+                                        }) ;
+        } else
         {
-            rprintln! ("middle high") ;
-            cx.shared.mouse.lock(| mouse | { mouse.push_middle() ; }) ;
+            rprintln! ("right high") ;
+            cx.shared.macro_config.lock(| conf |
+                                        {
+                                            cx.shared.mouse.lock(| mouse |
+                                                                 {
+                                                                     handle_macro(conf,
+                                                                                  conf.middle_button,
+                                                                                  mouse,
+                                                                                  true)
+                                                                     ;
+                                                                 }) ;
+                                        }) ;
         }
     } #[allow(non_snake_case)] fn left_hand(mut cx : left_hand :: Context)
     {
@@ -244,8 +290,11 @@
         use rtic :: Mutex as _ ; use rtic :: mutex_prelude :: * ;
         cx.shared.macro_config.lock(| conf |
                                     {
+                                        if i == MACRO_SIZE { return ; }
                                         let(function, delay, time) =
-                                        conf.get_macro_params(m, i) ;
+                                        conf.get_macro_params(m, i) ; if
+                                        matches! (function, Function :: End)
+                                        { return ; }
                                         cx.shared.mouse.lock(| mouse |
                                                              {
                                                                  do_function(function,
@@ -254,7 +303,8 @@
                                                              }) ; do_macro ::
                                         spawn_after(delay.millis(), m, i +
                                                     1).unwrap() ; end_macro ::
-                                        spawn_after(time.millis(), function) ;
+                                        spawn_after(time.millis(),
+                                                    function).unwrap() ;
                                     }) ;
     } #[allow(non_snake_case)] fn
     handle_host_call(mut cx : handle_host_call :: Context, buffer : [u8 ; 16])
@@ -363,8 +413,11 @@
     #[allow(non_snake_case)] #[allow(non_camel_case_types)]
     #[doc = "Shared resources `middle_hand` has access to"] pub struct
     __rtic_internal_middle_handSharedResources < 'a >
-    { pub mouse : shared_resources :: mouse_that_needs_to_be_locked < 'a >, }
-    #[doc = r" Execution context"] #[allow(non_snake_case)]
+    {
+        pub mouse : shared_resources :: mouse_that_needs_to_be_locked < 'a >,
+        pub macro_config : shared_resources ::
+        macro_config_that_needs_to_be_locked < 'a >,
+    } #[doc = r" Execution context"] #[allow(non_snake_case)]
     #[allow(non_camel_case_types)] pub struct
     __rtic_internal_middle_hand_Context < 'a >
     {
@@ -1245,7 +1298,8 @@
             __rtic_internal_middle_handSharedResources
             {
                 mouse : shared_resources :: mouse_that_needs_to_be_locked ::
-                new(priority),
+                new(priority), macro_config : shared_resources ::
+                macro_config_that_needs_to_be_locked :: new(priority),
             }
         }
     } #[allow(non_snake_case)] #[no_mangle] unsafe fn EXTI0()
@@ -1407,20 +1461,138 @@
         }
     } #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
     #[doc(hidden)] static __rtic_internal_end_macro_FQ : rtic :: RacyCell <
-    rtic :: export :: SCFQ < 2 > > = rtic :: RacyCell ::
+    rtic :: export :: SCFQ < 101 > > = rtic :: RacyCell ::
     new(rtic :: export :: Queue :: new()) ; #[link_section = ".uninit.rtic12"]
     #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
     #[doc(hidden)] static __rtic_internal_end_macro_MyMono_INSTANTS : rtic ::
     RacyCell <
     [core :: mem :: MaybeUninit << DwtSystick < FREQ_CORE > as rtic ::
-     Monotonic > :: Instant > ; 1] > = rtic :: RacyCell ::
-    new([core :: mem :: MaybeUninit :: uninit(),]) ;
+     Monotonic > :: Instant > ; 100] > = rtic :: RacyCell ::
+    new([core :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(),]) ;
     #[link_section = ".uninit.rtic13"] #[allow(non_camel_case_types)]
     #[allow(non_upper_case_globals)] #[doc(hidden)] static
     __rtic_internal_end_macro_INPUTS : rtic :: RacyCell <
-    [core :: mem :: MaybeUninit < Function > ; 1] > = rtic :: RacyCell ::
-    new([core :: mem :: MaybeUninit :: uninit(),]) ; impl < 'a >
-    __rtic_internal_end_macroSharedResources < 'a >
+    [core :: mem :: MaybeUninit < Function > ; 100] > = rtic :: RacyCell ::
+    new([core :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(),]) ;
+    impl < 'a > __rtic_internal_end_macroSharedResources < 'a >
     {
         #[inline(always)] pub unsafe fn
         new(priority : & 'a rtic :: export :: Priority) -> Self
@@ -1433,20 +1605,139 @@
         }
     } #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
     #[doc(hidden)] static __rtic_internal_do_macro_FQ : rtic :: RacyCell <
-    rtic :: export :: SCFQ < 2 > > = rtic :: RacyCell ::
+    rtic :: export :: SCFQ < 101 > > = rtic :: RacyCell ::
     new(rtic :: export :: Queue :: new()) ; #[link_section = ".uninit.rtic14"]
     #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
     #[doc(hidden)] static __rtic_internal_do_macro_MyMono_INSTANTS : rtic ::
     RacyCell <
     [core :: mem :: MaybeUninit << DwtSystick < FREQ_CORE > as rtic ::
-     Monotonic > :: Instant > ; 1] > = rtic :: RacyCell ::
-    new([core :: mem :: MaybeUninit :: uninit(),]) ;
+     Monotonic > :: Instant > ; 100] > = rtic :: RacyCell ::
+    new([core :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(),]) ;
     #[link_section = ".uninit.rtic15"] #[allow(non_camel_case_types)]
     #[allow(non_upper_case_globals)] #[doc(hidden)] static
     __rtic_internal_do_macro_INPUTS : rtic :: RacyCell <
-    [core :: mem :: MaybeUninit < (usize, usize,) > ; 1] > = rtic :: RacyCell
-    :: new([core :: mem :: MaybeUninit :: uninit(),]) ; impl < 'a >
-    __rtic_internal_do_macroSharedResources < 'a >
+    [core :: mem :: MaybeUninit < (usize, usize,) > ; 100] > = rtic ::
+    RacyCell ::
+    new([core :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(), core
+         :: mem :: MaybeUninit :: uninit(), core :: mem :: MaybeUninit ::
+         uninit(), core :: mem :: MaybeUninit :: uninit(), core :: mem ::
+         MaybeUninit :: uninit(), core :: mem :: MaybeUninit :: uninit(),]) ;
+    impl < 'a > __rtic_internal_do_macroSharedResources < 'a >
     {
         #[inline(always)] pub unsafe fn
         new(priority : & 'a rtic :: export :: Priority) -> Self
@@ -1477,7 +1768,7 @@
     enum P1_T { do_macro, end_macro, handle_host_call, } #[doc(hidden)]
     #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)] static
     __rtic_internal_P1_RQ : rtic :: RacyCell < rtic :: export :: SCRQ < P1_T,
-    4 > > = rtic :: RacyCell :: new(rtic :: export :: Queue :: new()) ;
+    202 > > = rtic :: RacyCell :: new(rtic :: export :: Queue :: new()) ;
     #[allow(non_snake_case)]
     #[doc = "Interrupt handler to dispatch tasks at priority 1"] #[no_mangle]
     unsafe fn DMA1_STREAM0()
@@ -1544,7 +1835,7 @@
     { end_macro, do_macro, handle_host_call, } #[doc(hidden)]
     #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)] static
     __rtic_internal_TQ_MyMono : rtic :: RacyCell < rtic :: export ::
-    TimerQueue < DwtSystick < FREQ_CORE >, SCHED_T, 3 > > = rtic :: RacyCell
+    TimerQueue < DwtSystick < FREQ_CORE >, SCHED_T, 201 > > = rtic :: RacyCell
     ::
     new(rtic :: export ::
         TimerQueue(rtic :: export :: SortedLinkedList :: new_u16())) ;
@@ -1629,14 +1920,14 @@
             DwtSystick < FREQ_CORE > > () ; rtic :: export :: interrupt ::
             disable() ;
             (0 ..
-             1u8).for_each(| i |
-                           (& mut *
-                            __rtic_internal_end_macro_FQ.get_mut()).enqueue_unchecked(i))
+             100u8).for_each(| i |
+                             (& mut *
+                              __rtic_internal_end_macro_FQ.get_mut()).enqueue_unchecked(i))
             ;
             (0 ..
-             1u8).for_each(| i |
-                           (& mut *
-                            __rtic_internal_do_macro_FQ.get_mut()).enqueue_unchecked(i))
+             100u8).for_each(| i |
+                             (& mut *
+                              __rtic_internal_do_macro_FQ.get_mut()).enqueue_unchecked(i))
             ;
             (0 ..
              1u8).for_each(| i |
