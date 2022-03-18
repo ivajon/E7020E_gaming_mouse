@@ -115,7 +115,7 @@ where
         let mut pmw3389 = Pmw3389 {
             spi,
             cs,
-            delay,
+            delay : delay,
             burst: false,
             cpi_increment : 10,
             dpi : 400

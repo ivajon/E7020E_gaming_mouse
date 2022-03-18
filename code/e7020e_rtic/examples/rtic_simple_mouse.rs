@@ -37,6 +37,10 @@ mod app {
 
     use stm32f4::stm32f401::{SPI1, TIM5};
     use app::mouseReport::MouseState;
+    use app::hidDescriptors::MouseKeyboard;
+    use app::mouseKeyboardReport::MouseKeyboardState;
+
+
     // Default core clock at 16MHz
     const FREQ_CORE: u32 = 16_000_000;
 
@@ -54,12 +58,12 @@ mod app {
     type SPI = Spi<SPI1, (SCK, MISO, MOSI), TransferModeNormal>;
     type DELAY = Delay<TIM5, 1000000_u32>;
     type PMW3389 = Pmw3389<SPI, CS, DELAY>;
+    
     #[shared]
     struct Shared {
-        mouse: MouseState,
+        mouse: MouseKeyboardState,
         pmw3389: PMW3389,
-        dp : Peripherals
-
+        EXTI : EXTI,
     }
     
     #[local]
@@ -83,6 +87,8 @@ mod app {
     fn init(cx: init::Context) -> (Shared, Local, init::Monotonics) {
         rtt_init_print!();
         rprintln!("init");
+
+        // grab core and device pointers
         let mut cd = cx.core;
         let mut dp = cx.device;
 
@@ -91,13 +97,12 @@ mod app {
         let mono = DwtSystick::new(&mut cd.DCB, cd.DWT,cd.SYST , FREQ_CORE);
 
         let rcc = dp.RCC.constrain();
-
         let clocks = rcc.cfgr.sysclk(48.MHz()).require_pll48clk().freeze();
-
+        // Grab gpio pins
         let gpioa = dp.GPIOA.split();
         let gpiob = dp.GPIOB.split();
         let gpioc = dp.GPIOC.split();
-
+        // define usb config
         let usb = USB {
             usb_global: dp.OTG_FS_GLOBAL,
             usb_device: dp.OTG_FS_DEVICE,
@@ -107,7 +112,7 @@ mod app {
             hclk: clocks.hclk(),
         };
 
-
+        // Configure pmw3389 sensor
         let sck: SCK = gpioa.pa5.into_alternate().set_speed(Speed::VeryHigh);
         let miso: MISO = gpioa.pa6.into_alternate().set_speed(Speed::High);
         let mosi: MOSI = gpioa.pa7.into_alternate().set_speed(Speed::High);
@@ -115,6 +120,10 @@ mod app {
         let spi: SPI = Spi::new(dp.SPI1, (sck, miso, mosi), MODE_3, 1.MHz(), &clocks);
         let delay: DELAY = dp.TIM5.delay_us(&clocks);
         let mut pmw3389: PMW3389 = Pmw3389::new(spi, cs, delay).unwrap();
+
+        // Write the cpi regs on startup
+        pmw3389.store_cpi().ok();
+        // Configure IO pins
         let mut motion = gpiob.pb13.into_pull_down_input().erase();
         let mut phase_a = gpiob.pb2.into_pull_down_input().erase();
         let mut phase_b = gpioc.pc9.into_pull_down_input().erase();
@@ -124,8 +133,6 @@ mod app {
         let mut front = gpioc.pc5.into_pull_down_input().erase();
         let mut back = gpioc.pc4.into_pull_down_input().erase();
 
-        // Write the cpi regs on startup
-        pmw3389.store_cpi().ok();
         /*
         loop {
             if left.is_high() {
@@ -147,23 +154,23 @@ mod app {
         phase_b.enable_interrupt(&mut dp.EXTI);
         phase_a.trigger_on_edge(&mut dp.EXTI, Edge::Rising);
         phase_b.trigger_on_edge(&mut dp.EXTI, Edge::Rising);
-        // Enable interuppts for the buttons
+        // Enable left button interrupt
         left.make_interrupt_source(&mut sys_cfg);
         left.enable_interrupt(&mut dp.EXTI);
         left.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
-
+        // Enable right button interrupt
         right.make_interrupt_source(&mut sys_cfg);
         right.enable_interrupt(&mut dp.EXTI);
         right.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
-
+        // Enable middle button interrupt
         middle.make_interrupt_source(&mut sys_cfg);
         middle.enable_interrupt(&mut dp.EXTI);
         middle.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
-
+        // Enable front button interrupt
         front.make_interrupt_source(&mut sys_cfg);
         front.enable_interrupt(&mut dp.EXTI);
         front.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
-
+        // Enable back button interrupt
         back.make_interrupt_source(&mut sys_cfg);
         back.enable_interrupt(&mut dp.EXTI);
         back.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
@@ -172,12 +179,11 @@ mod app {
 
         let hid = HIDClass::new(
             cx.local.bus.as_ref().unwrap(),
-            MouseReport::desc(),
+            MouseKeyboard::desc(),
             POLL_INTERVAL_MS,
         );
 
-        let mouse = MouseState::new();
-
+        let mouse = MouseKeyboardState::new();
         let usb_dev =
             UsbDeviceBuilder::new(cx.local.bus.as_ref().unwrap(), UsbVidPid(0xc410, 0x0000))
                 .manufacturer("Ivar och Erik")
@@ -187,15 +193,15 @@ mod app {
                 .build();
         // Enable host wakeup
         usb_dev.remote_wakeup_enabled();
+        let mut EXTI = dp.EXTI;
         let ts = 0;
         (
-            Shared {mouse,pmw3389,dp},
+            Shared {mouse,pmw3389,EXTI},
             Local { usb_dev, hid, left, right, middle, front, back, phase_a,phase_b,motion,ts},
             init::Monotonics(mono)
         )
     }
-    #[task(binds=EXTI15_10,
-        priority = 2, local = [middle,motion,ts], shared = [mouse])]
+    #[task(binds=EXTI15_10,priority = 2, local = [middle,motion,ts], shared = [mouse])]
     fn middle_hand(mut cx: middle_hand::Context) {
         // this should be automatic
         cx.local.middle.clear_interrupt_pending_bit();
@@ -212,7 +218,10 @@ mod app {
         }
         
     }
-
+    /*#[task(binds=EXTI0, priority = 2, local = [left], shared = [mouse])]
+    extern "Rust"{
+    mouse.left_button();
+    }*/
     #[task(binds=EXTI0, priority = 2, local = [left], shared = [mouse])]
     fn left_hand(mut cx: left_hand::Context) {
         // this should be automatic
@@ -248,50 +257,62 @@ mod app {
             });
         }
     }
-    #[task(shared = [dp])]
-    fn re_enable_interrupt(cx: re_enable_interrupt::Context,pin : ErasedPin<Input<PullDown>>) {
-        
-    }
-
-    #[task(binds=EXTI9_5, local = [front], shared = [mouse,dp])]
+    
+    #[task(binds=EXTI9_5, local = [front], shared = [pmw3389,mouse,EXTI])]
     fn front_hand(mut cx: front_hand::Context) {
-        // this should be automatic
         cx.local.front.clear_interrupt_pending_bit();
+
+
         // Temporarelly disable interrupts
-        cx.shared.dp.lock(|dp|{
-            cx.local.front.disable_interrupt(&mut dp.EXTI);
+        cx.shared.EXTI.lock(|EXTI|{
+            cx.local.front.disable_interrupt(EXTI);
+        });
+        delay(16000);
+        cx.shared.EXTI.lock(|EXTI|{
+            cx.local.front.enable_interrupt(EXTI);
         });
 
-        cx.shared.dp.lock(|dp|{
-            cx.local.front.disable_interrupt(&mut dp.EXTI);
-        });
+        // Handle button things
 
         if cx.local.front.is_low() {
+            rprintln!("front low");
             cx.shared.mouse.lock(|mouse| {
                 
             });
         } else {
             rprintln!("front high");
             cx.shared.mouse.lock(|mouse| {
-                //cx.shared.pmw3389.lock(|pmw3389| {
-                //    pmw3389.increment_dpi(1);
-                //});
+                cx.shared.pmw3389.lock(|pmw3389| {
+                    pmw3389.increment_dpi(1);
+                });
                 //mouse.push_front();
             });
         }
     }
+    fn delay(td:u32){
+        let time = monotonics::now().ticks() as u32;
+        #[no_mangle]
+        while(monotonics::now().ticks() as u32 - time) <  td{}
+    }
 
-    #[task(binds=EXTI4, local = [back], shared = [mouse])]
+    #[task(binds=EXTI4, local = [back], shared = [pmw3389,mouse,EXTI])]
     fn back_hand(mut cx: back_hand::Context) {
-        
         // this should be automatic
         cx.local.back.clear_interrupt_pending_bit();
+        // Temporarelly disable interrupts
+        cx.shared.EXTI.lock(|EXTI|{
+            cx.local.back.disable_interrupt(EXTI);
+        });
+        delay(16000);
+        cx.shared.EXTI.lock(|EXTI|{
+            cx.local.back.enable_interrupt(EXTI);
+        });
         if cx.local.back.is_low() {
             rprintln!("back low");
             cx.shared.mouse.lock(|mouse| {
-                //cx.shared.pmw3389.lock(|pmw3389| {
-                //    pmw3389.increment_dpi(-1);
-                //});
+                cx.shared.pmw3389.lock(|pmw3389| {
+                    pmw3389.increment_dpi(-1);
+                });
                 //mouse.release_front();
             });
         } else {
@@ -325,7 +346,7 @@ mod app {
         }
 
         // Buffer could be extended if needed
-        let mut buf = [0u8; 16];
+        let mut buf = [0u8; 1024];
         match hid.pull_raw_output(&mut buf).ok(){
             // Should return almost istantaneously if there is no data
             Some(len) => {
@@ -349,7 +370,7 @@ mod app {
         
     }
     #[task()]
-    fn handle_host_call(mut cx :handle_host_call::Context,buffer : [u8;16]) {
+    fn handle_host_call(mut cx :handle_host_call::Context,buffer : [u8;1024]) {
         rprintln!("handle host call");
         rprintln!("{:?}", buffer);
         // Defines an api

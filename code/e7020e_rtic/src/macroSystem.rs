@@ -10,7 +10,7 @@ pub struct MacroConfig {
     pub scroll_down: MacroType,
     pub side_button_front: MacroType,
     pub side_button_back: MacroType,
-    pub macros: [MacroSequence; 5],
+    //pub macros: [MacroSequence; 5],
 }
 
 #[derive(Debug)]
