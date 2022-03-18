@@ -14,7 +14,12 @@ use panic_rtt_target as _;
 
 #[rtic::app(device = stm32f4::stm32f401, dispatchers = [DMA1_STREAM0,DMA1_STREAM1])]
 mod app {
+    // Relative app imports
     use app::pmw3389::Pmw3389;
+    use app::mouseReport::MouseState;
+    use app::hidDescriptors::MouseKeyboard;
+    use app::mouseKeyboardReport::MouseKeyboardState;
+    // Absolute imports
     use eeprom::EEPROM;
     use stm32f4::stm32f401::*;
     use rtt_target::{rprintln, rtt_init_print};
@@ -36,9 +41,6 @@ mod app {
     };
 
     use stm32f4::stm32f401::{SPI1, TIM5};
-    use app::mouseReport::MouseState;
-    use app::hidDescriptors::MouseKeyboard;
-    use app::mouseKeyboardReport::MouseKeyboardState;
 
 
     // Default core clock at 16MHz
@@ -62,7 +64,6 @@ mod app {
     #[shared]
     struct Shared {
         mouse: MouseKeyboardState,
-        pmw3389: PMW3389,
         EXTI : EXTI,
     }
     
@@ -183,9 +184,9 @@ mod app {
             POLL_INTERVAL_MS,
         );
 
-        let mouse = MouseKeyboardState::new();
+        let mouse = MouseKeyboardState::new(pmw3389);
         let usb_dev =
-            UsbDeviceBuilder::new(cx.local.bus.as_ref().unwrap(), UsbVidPid(0xc410, 0x0000))
+            UsbDeviceBuilder::new(cx.local.bus.as_ref().unwrap(), UsbVidPid(0xc410, 0x1234))
                 .manufacturer("Ivar och Erik")
                 .product("Banger gaming mus")
                 .serial_number("1234")
@@ -196,7 +197,7 @@ mod app {
         let mut EXTI = dp.EXTI;
         let ts = 0;
         (
-            Shared {mouse,pmw3389,EXTI},
+            Shared {mouse,EXTI},
             Local { usb_dev, hid, left, right, middle, front, back, phase_a,phase_b,motion,ts},
             init::Monotonics(mono)
         )
@@ -258,7 +259,7 @@ mod app {
         }
     }
     
-    #[task(binds=EXTI9_5, local = [front], shared = [pmw3389,mouse,EXTI])]
+    #[task(binds=EXTI9_5, local = [front], shared = [mouse,EXTI])]
     fn front_hand(mut cx: front_hand::Context) {
         cx.local.front.clear_interrupt_pending_bit();
 
@@ -267,7 +268,7 @@ mod app {
         cx.shared.EXTI.lock(|EXTI|{
             cx.local.front.disable_interrupt(EXTI);
         });
-        delay(16000);
+        delay(160000);
         cx.shared.EXTI.lock(|EXTI|{
             cx.local.front.enable_interrupt(EXTI);
         });
@@ -282,9 +283,7 @@ mod app {
         } else {
             rprintln!("front high");
             cx.shared.mouse.lock(|mouse| {
-                cx.shared.pmw3389.lock(|pmw3389| {
-                    pmw3389.increment_dpi(1);
-                });
+                mouse.increment_dpi(1);
                 //mouse.push_front();
             });
         }
@@ -295,7 +294,7 @@ mod app {
         while(monotonics::now().ticks() as u32 - time) <  td{}
     }
 
-    #[task(binds=EXTI4, local = [back], shared = [pmw3389,mouse,EXTI])]
+    #[task(binds=EXTI4, local = [back], shared = [mouse,EXTI])]
     fn back_hand(mut cx: back_hand::Context) {
         // this should be automatic
         cx.local.back.clear_interrupt_pending_bit();
@@ -303,16 +302,14 @@ mod app {
         cx.shared.EXTI.lock(|EXTI|{
             cx.local.back.disable_interrupt(EXTI);
         });
-        delay(16000);
+        delay(160000);
         cx.shared.EXTI.lock(|EXTI|{
             cx.local.back.enable_interrupt(EXTI);
         });
         if cx.local.back.is_low() {
             rprintln!("back low");
             cx.shared.mouse.lock(|mouse| {
-                cx.shared.pmw3389.lock(|pmw3389| {
-                    pmw3389.increment_dpi(-1);
-                });
+                mouse.increment_dpi(-1);
                 //mouse.release_front();
             });
         } else {
@@ -396,35 +393,18 @@ mod app {
         }
 
     }
-    #[task(shared = [pmw3389])]
+    #[task(shared = [mouse])]
     fn handle_dpi(mut cx : handle_dpi::Context,dpi : u16){
-        //rprintln!("New DPI : {:}", dpi);
-        //rprintln!("handle dpi");
-        cx.shared.pmw3389.lock(|pmw3389| {
-            pmw3389.set_dpi(dpi);
+        cx.shared.mouse.lock(|mouse| {
+            mouse.write_dpi(dpi);
         });
     }
-    #[idle(shared = [mouse,pmw3389])]
+    #[idle(shared = [mouse])]
     fn idle(mut cx: idle::Context) -> ! {
         loop {
-            let status   = cx.shared.pmw3389.lock(|pmw3389| {
-                pmw3389.read_status()
-            });
-            match status{
-                Ok(status) => {
-                    if status.dx!=0 || status.dy!=0
-                    {
-                        cx.shared.mouse.lock(|mouse| {
-                            mouse.add_x_movement(status.dx as i8 );
-                            mouse.add_y_movement(status.dy as i8);
-                        });   
-                    }
-                },
-                Err(e) => {
-                    rprintln!("{:?}",e);
-                }
-            } 
-            
+            cx.shared.mouse.lock(|mouse|{
+                mouse.read_sensor();
+            });   
         }
     }
     
