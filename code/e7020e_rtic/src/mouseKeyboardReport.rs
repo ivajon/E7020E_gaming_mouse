@@ -1,6 +1,24 @@
 use crate::hidDescriptors::MouseKeyboard;
 use rtt_target::{rprintln, rtt_init_print};
 
+// Include sensor related packages
+use crate::pmw3389::Pmw3389;
+use stm32f4xx_hal::{
+    gpio::{Alternate, Output, Pin, PushPull, Speed},
+    prelude::*,
+    spi::{Spi, TransferModeNormal},
+    timer::Delay,
+};
+use stm32f4::stm32f401::{SPI1, TIM5};
+
+
+// Define needed types
+type SCK = Pin<Alternate<PushPull, 5_u8>, 'A', 5_u8>;
+type MOSI = Pin<Alternate<PushPull, 5_u8>, 'A', 7_u8>;
+type MISO = Pin<Alternate<PushPull, 5_u8>, 'A', 6_u8>;
+type CS = Pin<Output<PushPull>, 'A', 4_u8>;
+type SPI = Spi<SPI1, (SCK, MISO, MOSI), TransferModeNormal>;
+type DELAY = Delay<TIM5, 1000000_u32>;
 pub struct MouseKeyboardState {
     // mouse part
     x: i8,
@@ -11,10 +29,12 @@ pub struct MouseKeyboardState {
     middle_button: bool,
     // keybord part
     keycode: [u8; 6],
+    /// Sensor variable, holds sensor API
+    sensor:Pmw3389<SPI,CS,DELAY>
 }
 
 impl MouseKeyboardState {
-    pub fn new() -> MouseKeyboardState {
+    pub fn new(sensor:Pmw3389<SPI,CS,DELAY>) -> MouseKeyboardState {
         MouseKeyboardState {
             x: 0,
             y: 0,
@@ -22,7 +42,8 @@ impl MouseKeyboardState {
             left_button: false,
             right_button: false,
             middle_button: false,
-            keycode: [0, 0, 0, 0, 0, 0]
+            keycode: [0, 0, 0, 0, 0, 0],
+            sensor : sensor
         }
     }
 
@@ -128,6 +149,25 @@ impl MouseKeyboardState {
         self.reset();
         ret
     }
+    pub fn increment_dpi(&mut self,direction : i16){
+        self.sensor.increment_dpi(direction);
+    }
+    pub fn write_dpi(&mut self, dpi: u16) {
+        self.sensor.set_dpi(dpi);
+    }
+
+
+    pub fn read_sensor(&mut self) {
+        let status = self.sensor.read_status();
+        match(status) {
+            Ok(status) => {
+                self.add_x_movement(status.dx as i8);
+                self.add_y_movement(status.dy as i8);
+            },
+            _ => ()
+        }
+    }
+
 }
 
 fn make_button(left: bool, middle: bool, right: bool) -> u8 {
