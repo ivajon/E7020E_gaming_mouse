@@ -1,7 +1,6 @@
 use crate::hidDescriptors::MouseKeyboard;
 use rtt_target::{rprintln, rtt_init_print};
 
-use rtt_target::{rprintln};
 pub struct MouseKeyboardState {
     // mouse part
     x: i8,
