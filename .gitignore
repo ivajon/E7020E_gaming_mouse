@@ -2,3 +2,6 @@ schematics_and_pcb/schematics_and_pcb-backups
 schematics_and_pcb/schematics_and_pcb-backups/*
 schematics_and_pcb/schematics_and_pcb-backups/**
 code/e7020e_rtic/target/**
+code/e7020e_rtic/target/*
+code/e7020e_rtic/target/.rustc_info.json
+code/e7020e_rtic/target/rtic-expansion.rs
