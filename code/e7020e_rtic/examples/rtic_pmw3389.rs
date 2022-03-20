@@ -118,7 +118,7 @@ mod app {
         // Check if any measurement exceeds 10% of i16::MAX, this
         // should give you immense headroom, when setting the dpi.
         //
-        pmw3389.set_cpi(8000).unwrap();
+        //pmw3389.set_cpi(8000).unwrap();
 
         let mut x_acc: i32 = 0;
         loop {

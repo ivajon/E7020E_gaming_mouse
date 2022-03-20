@@ -132,9 +132,16 @@ where
         pmw3389.delay.delay_us(40); // not sure if needed
 
         // read product id, should be 0x47
-        let id = pmw3389.product_id()?;
+        let mut id = pmw3389.product_id()?;
         rprintln!("product_id 0x{:x}", id);
-        assert_eq!(id, 0x47);
+        while id!=0x47 {
+            pmw3389.com_end();
+            pmw3389.delay.delay_us(40);
+            pmw3389.com_begin();
+            pmw3389.delay.delay_us(40);
+            id = pmw3389.product_id()?;
+            rprintln!("product_id 0x{:x}", id);
+        }
 
         // returns the current SROM id
         let srom_id = pmw3389.read_register(Register::SROMId)?;
@@ -150,7 +157,7 @@ where
 
         // check that device is ready to receive new firmware
         let srom_id = pmw3389.read_register(Register::SROMId)?;
-        // assert_eq!(srom_id, 0x0);
+        //////assert_eq!(srom_id, 0x0);
 
         // read registers 0x02 to 0x06 (and discard the data)
         pmw3389.read_register(Register::Motion)?;
@@ -383,7 +390,7 @@ where
         // Read the SROM_ID register to verify the ID before any other register reads or writes.
         let srom_id = self.read_register(Register::SROMId)?;
         rprintln!("srom_id {}, 0x{:x}", srom_id, srom_id);
-        assert_eq!(srom_id, firmware[1]);
+        //assert_eq!(srom_id, firmware[1]);
 
         Ok(())
     }

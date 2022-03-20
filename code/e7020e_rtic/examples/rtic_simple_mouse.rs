@@ -11,26 +11,30 @@
 #![no_std]
 
 use panic_rtt_target as _;
-
+//type Button = ErasedPin<Input<PullUp>>;
 #[rtic::app(device = stm32f4::stm32f401, dispatchers = [DMA1_STREAM0,DMA1_STREAM1])]
 mod app {
     // Relative app imports
     use app::pmw3389::Pmw3389;
     use app::mouseReport::MouseState;
+    use app::PCA9624PW::*;
     use app::hidDescriptors::MouseKeyboard;
     use app::mouseKeyboardReport::MouseKeyboardState;
     // Absolute imports
     use eeprom::EEPROM;
     use stm32f4::stm32f401::*;
-    use rtt_target::{rprintln, rtt_init_print};
-    use stm32f4xx_hal::otg_fs::{UsbBus, USB};
-    use stm32f4xx_hal::prelude::*;
-    use stm32f4xx_hal::gpio::*;
+    
+    use rtt_target::{
+        rprintln,
+        rtt_init_print
+    };
     use dwt_systick_monotonic::*;
-    use embedded_hal::spi::MODE_3;
-    use usb_device::{bus::UsbBusAllocator, prelude::*};
+    use usb_device::{
+        bus::UsbBusAllocator,
+        prelude::*
+    };
     use usbd_hid::{
-        descriptor::{generator_prelude::*, MouseReport},
+        descriptor::{generator_prelude::*},
         hid_class::HIDClass,
     };
     use stm32f4xx_hal::{
@@ -38,8 +42,13 @@ mod app {
         prelude::*,
         spi::{Spi, TransferModeNormal},
         timer::Delay,
+        gpio::*,
+        otg_fs::{UsbBus, USB},
+        i2c::*,
     };
-
+    
+    // Includes for the spi interface
+    use embedded_hal::spi::MODE_3;
     use stm32f4::stm32f401::{SPI1, TIM5};
 
 
@@ -49,17 +58,22 @@ mod app {
     #[monotonic(binds = SysTick, default = true)]
     type MyMono = DwtSystick<FREQ_CORE>; // 16MHz cycle accurate accuracy
 
-    //type Button = ErasedPin<Input<PullUp>>;
+    
     type Button = ErasedPin<Input<PullDown>>;
-    // types need to be concrete for storage in a resource
-    type SCK = Pin<Alternate<PushPull, 5_u8>, 'A', 5_u8>;
-    type MOSI = Pin<Alternate<PushPull, 5_u8>, 'A', 7_u8>;
-    type MISO = Pin<Alternate<PushPull, 5_u8>, 'A', 6_u8>;
+    // Types for spi interface
+    type SCK = Pin<Alternate<PushPull, 5_u8>, 'B', 3_u8>;
+    type MOSI = Pin<Alternate<PushPull, 5_u8>, 'B', 5_u8>;
+    type MISO = Pin<Alternate<PushPull, 5_u8>, 'B', 4_u8>;
     type CS = Pin<Output<PushPull>, 'A', 4_u8>;
-
     type SPI = Spi<SPI1, (SCK, MISO, MOSI), TransferModeNormal>;
+    // Types for pmw3389 device driver
     type DELAY = Delay<TIM5, 1000000_u32>;
     type PMW3389 = Pmw3389<SPI, CS, DELAY>;
+    // Types for the i2c interface
+    type SCL = Pin<Alternate<OpenDrain, 4_u8>, 'A', 8_u8>;
+    type SDA = Pin<Alternate<OpenDrain, 4_u8>, 'C', 9_u8>;
+    type I2C = I2c<I2C3, (SCL, SDA)>;
+    
     
     #[shared]
     struct Shared {
@@ -114,25 +128,33 @@ mod app {
         };
 
         // Configure pmw3389 sensor
-        let sck: SCK = gpioa.pa5.into_alternate().set_speed(Speed::VeryHigh);
-        let miso: MISO = gpioa.pa6.into_alternate().set_speed(Speed::High);
-        let mosi: MOSI = gpioa.pa7.into_alternate().set_speed(Speed::High);
-        let cs: CS = gpioa.pa4.into_push_pull_output().set_speed(Speed::High);
-        let spi: SPI = Spi::new(dp.SPI1, (sck, miso, mosi), MODE_3, 1.MHz(), &clocks);
-        let delay: DELAY = dp.TIM5.delay_us(&clocks);
-        let mut pmw3389: PMW3389 = Pmw3389::new(spi, cs, delay).unwrap();
-
+        let sck         : SCK       = gpiob.pb3.into_alternate().set_speed(Speed::VeryHigh);
+        let miso        : MISO      = gpiob.pb4.into_alternate().set_speed(Speed::High);
+        let mosi        : MOSI      = gpiob.pb5.into_alternate().set_speed(Speed::High);
+        let cs          : CS        = gpioa.pa4.into_push_pull_output().set_speed(Speed::High);
+        let spi         : SPI       = Spi::new(dp.SPI1, (sck, miso, mosi), MODE_3, 1.MHz(), &clocks);
+        let delay       : DELAY     = dp.TIM5.delay_us(&clocks);
+        let mut pmw3389 : PMW3389   = Pmw3389::new(spi, cs, delay).unwrap();
         // Write the cpi regs on startup
         pmw3389.store_cpi().ok();
+        // Defines a i2c interface
+        let scl         : SCL       = gpioa.pa8.into_alternate_open_drain();
+        let sda         : SDA       = gpioc.pc9.into_alternate_open_drain();
+        let mut i2c     : I2C       = I2c::new(dp.I2C3, (scl,sda), Mode::from(1.MHz()), &clocks); 
+
+        
+        let mut interfaces = standard_interfaces();
+        let mut rgb_controller:PCA9624PW = PCA9624PW::new(i2c,interfaces,0xC0); // Might be 0xC2
         // Configure IO pins
-        let mut motion = gpiob.pb13.into_pull_down_input().erase();
-        let mut phase_a = gpiob.pb2.into_pull_down_input().erase();
-        let mut phase_b = gpioc.pc9.into_pull_down_input().erase();
-        let mut left = gpiob.pb0.into_pull_down_input().erase();
-        let mut right = gpiob.pb1.into_pull_down_input().erase();
-        let mut middle = gpiob.pb12.into_pull_down_input().erase();
-        let mut front = gpioc.pc5.into_pull_down_input().erase();
-        let mut back = gpioc.pc4.into_pull_down_input().erase();
+        let mut motion:Button = gpiob.pb13.into_pull_down_input().erase();
+        let mut phase_a:Button = gpiob.pb2.into_pull_down_input().erase();
+        let mut phase_b:Button = gpioc.pc10.into_pull_down_input().erase();
+        let mut left:Button = gpiob.pb0.into_pull_down_input().erase();
+        let mut right:Button = gpiob.pb1.into_pull_down_input().erase();
+        let mut middle:Button = gpiob.pb12.into_pull_down_input().erase();
+        let mut front:Button = gpioc.pc5.into_pull_down_input().erase();
+        let mut back:Button = gpioc.pc4.into_pull_down_input().erase();
+
 
         /*
         loop {
@@ -202,6 +224,7 @@ mod app {
             init::Monotonics(mono)
         )
     }
+
     #[task(binds=EXTI15_10,priority = 2, local = [middle,motion,ts], shared = [mouse])]
     fn middle_hand(mut cx: middle_hand::Context) {
         // this should be automatic
@@ -263,57 +286,49 @@ mod app {
         // this should be automatic
         cx.local.phase_a.clear_interrupt_pending_bit();
 
-        if cx.local.phase_a.is_low() {
-            rprintln!("phase_a low");
-            cx.shared.mouse.lock(|mouse| {
-            });
-        } else {
-            rprintln!("phase_a high");
-            cx.shared.mouse.lock(|mouse| {
-            });
-        }
+        rprintln!("phase_a high");
+        cx.shared.mouse.lock(|mouse| {
+                mouse.handle_scroll('a');
+        });
+        
     }
     #[task(binds=EXTI9_5, local = [front,phase_b], shared = [mouse,EXTI])]
     fn front_hand(mut cx: front_hand::Context) {
         cx.local.front.clear_interrupt_pending_bit();
         cx.local.phase_b.clear_interrupt_pending_bit();
-        if cx.local.phase_b.is_low() {
+        if cx.local.phase_b.is_high() {
             rprintln!("phase_b low");
             cx.shared.mouse.lock(|mouse| {
+                mouse.handle_scroll('b');
             });
-        } else {
-            rprintln!("phase_b high");
-            cx.shared.mouse.lock(|mouse| {
+        } 
+        else
+        {
+                if cx.local.front.is_low() {
+                    rprintln!("front low");
+                    cx.shared.mouse.lock(|mouse| {
+                    
+                });
+            } else {
+                rprintln!("front high");
+                cx.shared.mouse.lock(|mouse| {
+                    mouse.increment_dpi(1);
+                    //mouse.push_front();
+                });
+            }
+            // Temporarelly disable interrupts
+            cx.shared.EXTI.lock(|EXTI|{
+                cx.local.front.disable_interrupt(EXTI);
             });
-        }
-
-        // Temporarelly disable interrupts
-        cx.shared.EXTI.lock(|EXTI|{
-            cx.local.front.disable_interrupt(EXTI);
-        });
-        delay(160000);
-        cx.shared.EXTI.lock(|EXTI|{
-            cx.local.front.enable_interrupt(EXTI);
-        });
-
-        // Handle button things
-
-        if cx.local.front.is_low() {
-            rprintln!("front low");
-            cx.shared.mouse.lock(|mouse| {
-                
-            });
-        } else {
-            rprintln!("front high");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.increment_dpi(1);
-                //mouse.push_front();
+            delay(160000);
+            cx.shared.EXTI.lock(|EXTI|{
+                cx.local.front.enable_interrupt(EXTI);
             });
         }
     }
+    #[no_mangle]
     fn delay(td:u32){
         let time = monotonics::now().ticks() as u32;
-        #[no_mangle]
         while(monotonics::now().ticks() as u32 - time) <  td{}
     }
 

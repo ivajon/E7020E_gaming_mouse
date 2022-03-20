@@ -1,5 +1,5 @@
 use crate::hidDescriptors::MouseKeyboard;
-use rtt_target::{rprintln, rtt_init_print};
+use rtt_target::{rprintln, rtt_init_print, rprint};
 
 // Include sensor related packages
 use crate::pmw3389::Pmw3389;
@@ -13,9 +13,10 @@ use stm32f4::stm32f401::{SPI1, TIM5};
 
 
 // Define needed types
-type SCK = Pin<Alternate<PushPull, 5_u8>, 'A', 5_u8>;
-type MOSI = Pin<Alternate<PushPull, 5_u8>, 'A', 7_u8>;
-type MISO = Pin<Alternate<PushPull, 5_u8>, 'A', 6_u8>;
+
+type SCK = Pin<Alternate<PushPull, 5_u8>, 'B', 3_u8>;
+type MOSI = Pin<Alternate<PushPull, 5_u8>, 'B', 5_u8>;
+type MISO = Pin<Alternate<PushPull, 5_u8>, 'B', 4_u8>;
 type CS = Pin<Output<PushPull>, 'A', 4_u8>;
 type SPI = Spi<SPI1, (SCK, MISO, MOSI), TransferModeNormal>;
 type DELAY = Delay<TIM5, 1000000_u32>;
@@ -30,7 +31,9 @@ pub struct MouseKeyboardState {
     // keybord part
     keycode: [u8; 6],
     /// Sensor variable, holds sensor API
-    sensor:Pmw3389<SPI,CS,DELAY>
+    sensor:Pmw3389<SPI,CS,DELAY>,
+    last_phase:char,
+    scroll_direction:i8
 }
 
 impl MouseKeyboardState {
@@ -43,7 +46,9 @@ impl MouseKeyboardState {
             right_button: false,
             middle_button: false,
             keycode: [0, 0, 0, 0, 0, 0],
-            sensor : sensor
+            sensor : sensor,
+            last_phase:' ',
+            scroll_direction : 0,
         }
     }
 
@@ -68,7 +73,18 @@ impl MouseKeyboardState {
             self.y = result
         }
     }
-    
+    pub fn handle_scroll(&mut self, phase: char) {
+        if self.last_phase == ' ' {
+            self.last_phase = phase;
+        } else if self.last_phase == phase {
+            self.scroll_direction *= -1;
+        } 
+        if(self.scroll_direction == 1) {
+            self.wheel_up();
+        } else if(self.scroll_direction == -1) {
+            self.wheel_down();
+        }
+    }
     pub fn wheel_up(&mut self) {
         match self.wheel {
             i8::MAX => (),
@@ -162,6 +178,7 @@ impl MouseKeyboardState {
         let status = self.sensor.read_status();
         match(status) {
             Ok(status) => {
+                //rprintln!("{:?}",status);
                 self.add_x_movement(status.dx as i8);
                 self.add_y_movement(status.dy as i8);
             },

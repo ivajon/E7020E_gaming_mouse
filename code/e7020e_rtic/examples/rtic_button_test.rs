@@ -39,7 +39,7 @@ mod app {
     
     #[local]
     struct Local {
-        left: Button,
+        button: Button,
     }
 
     #[init(local = [EP_MEMORY: [u32; 1024] = [0; 1024], bus: Option<UsbBusAllocator<UsbBus<USB>>> = None])]
@@ -61,29 +61,27 @@ mod app {
         let gpioc = dp.GPIOC.split();
 
         // Configure IO pins
-        let mut left = gpiob.pb0.into_pull_down_input().erase();
-        // Enable left button interrupt
-        left.make_interrupt_source(&mut sys_cfg);
-        left.enable_interrupt(&mut dp.EXTI);
-        left.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
+        let mut button = gpioc.pc12.into_pull_down_input().erase();
+        // Enable button button interrupt
+        button.make_interrupt_source(&mut sys_cfg);
+        button.enable_interrupt(&mut dp.EXTI);
+        button.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
 
-        let mut EXTI = dp.EXTI;
-        let ts = 0;
         (
             Shared {},
-            Local { left},
+            Local { button},
             init::Monotonics(mono)
         )
     }
-    #[task(binds=EXTI0, local = [left], shared = [])]
-    fn left_hand(mut cx: left_hand::Context) {
+    #[task(binds=EXTI15_10, local = [button], shared = [])]
+    fn button_hand(mut cx: button_hand::Context) {
         // this should be automatic
-        cx.local.left.clear_interrupt_pending_bit();
+        cx.local.button.clear_interrupt_pending_bit();
 
-        if cx.local.left.is_low() {
-            rprintln!("left low");
+        if cx.local.button.is_low() {
+            rprintln!("button low");
         } else {
-            rprintln!("left high");
+            rprintln!("button high");
         }
     }
 
