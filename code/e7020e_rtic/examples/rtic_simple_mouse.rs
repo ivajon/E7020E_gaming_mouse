@@ -31,7 +31,8 @@ mod app {
     use dwt_systick_monotonic::*;
     use usb_device::{
         bus::UsbBusAllocator,
-        prelude::*
+        prelude::*,
+        endpoint::*
     };
     use usbd_hid::{
         descriptor::{generator_prelude::*},
@@ -200,6 +201,8 @@ mod app {
 
         cx.local.bus.replace(UsbBus::new(usb, cx.local.EP_MEMORY));
 
+        // This would be nice, not sure if it's gonna work though.
+        let mut serial = usbd_serial::SerialPort::new(cx.local.bus.as_ref().unwrap());
         let hid = HIDClass::new(
             cx.local.bus.as_ref().unwrap(),
             MouseKeyboard::desc(),
@@ -213,9 +216,13 @@ mod app {
                 .product("Banger gaming mus")
                 .serial_number("1234")
                 .device_class(0) // Hid
+                .max_power(500) // Just take all the power
                 .build();
         // Enable host wakeup
         usb_dev.remote_wakeup_enabled();
+        // It seems that we can install multiple endpoints
+        // We would need to denfine 
+
         let mut EXTI = dp.EXTI;
         let ts = 0;
         (
