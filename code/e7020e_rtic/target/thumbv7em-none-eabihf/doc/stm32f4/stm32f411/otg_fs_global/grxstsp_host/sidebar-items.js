@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["BCNT_R","Field `BCNT` reader - Byte count"],["CHNUM_R","Field `CHNUM` reader - Channel number"],["DPID_R","Field `DPID` reader - Data PID"],["GRXSTSP_HOST_SPEC","OTG status read and pop (host mode)"],["PKTSTS_R","Field `PKTSTS` reader - Packet status"],["R","Register `GRXSTSP_Host` reader"]]});

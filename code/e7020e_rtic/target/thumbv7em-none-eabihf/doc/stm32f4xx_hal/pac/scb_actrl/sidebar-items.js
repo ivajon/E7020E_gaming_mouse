@@ -1,1 +1,0 @@
-initSidebarItems({"mod":[["actrl","Auxiliary control register"]],"struct":[["RegisterBlock","Register block"]],"type":[["ACTRL","ACTRL register accessor: an alias for `Reg<ACTRL_SPEC>`"]]});

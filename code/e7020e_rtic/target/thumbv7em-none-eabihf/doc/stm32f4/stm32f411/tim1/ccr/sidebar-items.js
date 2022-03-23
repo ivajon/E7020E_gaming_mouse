@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["CCR_R","Field `CCR` reader - Capture/Compare value"],["CCR_SPEC","capture/compare register"],["CCR_W","Field `CCR` writer - Capture/Compare value"],["R","Register `CCR%s` reader"],["W","Register `CCR%s` writer"]]});

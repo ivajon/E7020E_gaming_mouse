@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["DVBUSDIS_SPEC","OTG_FS device VBUS discharge time register"],["R","Register `DVBUSDIS` reader"],["VBUSDT_R","Field `VBUSDT` reader - Device VBUS discharge time"],["VBUSDT_W","Field `VBUSDT` writer - Device VBUS discharge time"],["W","Register `DVBUSDIS` writer"]]});

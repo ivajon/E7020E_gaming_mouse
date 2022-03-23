@@ -1,3 +1,0 @@
-(function() {var implementors = {};
-implementors["synopsys_usb_otg"] = [{"text":"impl&lt;USB:&nbsp;<a class=\"trait\" href=\"synopsys_usb_otg/trait.UsbPeripheral.html\" title=\"trait synopsys_usb_otg::UsbPeripheral\">UsbPeripheral</a>&gt; <a class=\"trait\" href=\"usb_device/bus/trait.UsbBus.html\" title=\"trait usb_device::bus::UsbBus\">UsbBus</a> for <a class=\"struct\" href=\"synopsys_usb_otg/bus/struct.UsbBus.html\" title=\"struct synopsys_usb_otg::bus::UsbBus\">UsbBus</a>&lt;USB&gt;","synthetic":false,"types":["synopsys_usb_otg::bus::UsbBus"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

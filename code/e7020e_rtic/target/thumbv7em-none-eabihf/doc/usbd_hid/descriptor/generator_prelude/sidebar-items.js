@@ -1,1 +1,0 @@
-initSidebarItems({"attr":[["gen_hid_descriptor","Attribute to generate a HID descriptor & serialization code"]],"trait":[["Serialize","A data structure that can be serialized into any data format supported by Serde."],["SerializeTuple","Returned from `Serializer::serialize_tuple`."],["Serializer","A data format that can serialize any data structure supported by Serde."]]});

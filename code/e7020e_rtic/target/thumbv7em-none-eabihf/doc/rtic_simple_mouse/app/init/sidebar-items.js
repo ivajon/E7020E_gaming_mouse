@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["LocalResources","Local resources `init` has access to"]]});

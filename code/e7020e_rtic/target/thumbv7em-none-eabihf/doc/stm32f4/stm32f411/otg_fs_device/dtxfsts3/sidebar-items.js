@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["DTXFSTS3_SPEC","OTG_FS device IN endpoint transmit FIFO status register"],["INEPTFSAV_R","Field `INEPTFSAV` reader - IN endpoint TxFIFO space available"],["R","Register `DTXFSTS3` reader"]]});

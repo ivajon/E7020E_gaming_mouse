@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["OPTKEYR_SPEC","Flash option key register"],["OPTKEY_W","Field `OPTKEY` writer - Option byte key"],["W","Register `OPTKEYR` writer"]]});

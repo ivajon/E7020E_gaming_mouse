@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["UG_AW","Update generation"]],"struct":[["CC1G_W","Field `CC1G` writer - Capture/compare 1 generation"],["CC2G_W","Field `CC2G` writer - Capture/compare 2 generation"],["EGR_SPEC","event generation register"],["TG_W","Field `TG` writer - Trigger generation"],["UG_W","Field `UG` writer - Update generation"],["W","Register `EGR` writer"]]});

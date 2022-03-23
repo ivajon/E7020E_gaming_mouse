@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["GRXFSIZ_SPEC","OTG_FS Receive FIFO size register (OTG_FS_GRXFSIZ)"],["R","Register `GRXFSIZ` reader"],["RXFD_R","Field `RXFD` reader - RxFIFO depth"],["RXFD_W","Field `RXFD` writer - RxFIFO depth"],["W","Register `GRXFSIZ` writer"]]});

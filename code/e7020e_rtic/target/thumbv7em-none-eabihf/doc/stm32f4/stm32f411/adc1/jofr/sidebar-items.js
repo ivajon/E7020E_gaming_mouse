@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["JOFFSET_R","Field `JOFFSET` reader - Data offset for injected channel x"],["JOFFSET_W","Field `JOFFSET` writer - Data offset for injected channel x"],["JOFR_SPEC","injected channel data offset register x"],["R","Register `JOFR%s` reader"],["W","Register `JOFR%s` writer"]]});

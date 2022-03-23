@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["PwmInput","Represents a TIMer configured as a PWM input. This peripheral will emit an interrupt on CC2 events, which occurs at two times in this mode:"]],"trait":[["Pins",""]]});

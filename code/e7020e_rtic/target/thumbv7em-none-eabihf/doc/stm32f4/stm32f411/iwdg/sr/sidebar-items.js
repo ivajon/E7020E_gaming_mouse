@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["PVU_R","Field `PVU` reader - Watchdog prescaler value update"],["R","Register `SR` reader"],["RVU_R","Field `RVU` reader - Watchdog counter reload value update"],["SR_SPEC","Status register"]]});

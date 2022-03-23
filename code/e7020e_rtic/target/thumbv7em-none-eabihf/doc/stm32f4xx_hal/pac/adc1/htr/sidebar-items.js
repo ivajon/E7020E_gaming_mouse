@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["HTR_SPEC","watchdog higher threshold register"],["HT_R","Field `HT` reader - Analog watchdog higher threshold"],["HT_W","Field `HT` writer - Analog watchdog higher threshold"],["R","Register `HTR` reader"],["W","Register `HTR` writer"]]});

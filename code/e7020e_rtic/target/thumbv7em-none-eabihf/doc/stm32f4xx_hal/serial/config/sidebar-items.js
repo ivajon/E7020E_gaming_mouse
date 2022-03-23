@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["DmaConfig",""],["Parity","Parity generation and checking. If odd or even parity is selected, the underlying USART will be configured to send/receive the parity bit in addtion to the data bits."],["StopBits","Stop Bit configuration parameter for serial."],["WordLength",""]],"struct":[["Config",""],["InvalidConfig",""]]});

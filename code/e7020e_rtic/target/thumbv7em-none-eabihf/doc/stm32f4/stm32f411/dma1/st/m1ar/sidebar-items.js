@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["M1AR_SPEC","stream x memory 1 address register"],["M1A_R","Field `M1A` reader - Memory 1 address (used in case of Double buffer mode)"],["M1A_W","Field `M1A` writer - Memory 1 address (used in case of Double buffer mode)"],["R","Register `M1AR` reader"],["W","Register `M1AR` writer"]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["R","Register `RXCRCR` reader"],["RXCRCR_SPEC","RX CRC register"],["RXCRC_R","Field `RxCRC` reader - Rx CRC register"]]});

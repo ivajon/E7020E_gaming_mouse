@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["M0AR_SPEC","stream x memory 0 address register"],["M0A_R","Field `M0A` reader - Memory 0 address"],["M0A_W","Field `M0A` writer - Memory 0 address"],["R","Register `M0AR` reader"],["W","Register `M0AR` writer"]]});

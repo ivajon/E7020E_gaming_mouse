@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["NDTR_SPEC","stream x number of data register"],["NDT_R","Field `NDT` reader - Number of data items to transfer"],["NDT_W","Field `NDT` writer - Number of data items to transfer"],["R","Register `NDTR` reader"],["W","Register `NDTR` writer"]]});

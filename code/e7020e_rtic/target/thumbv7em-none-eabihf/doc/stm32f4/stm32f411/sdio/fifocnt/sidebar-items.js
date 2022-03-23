@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["FIFOCNT_SPEC","FIFO counter register"],["FIFOCOUNT_R","Field `FIFOCOUNT` reader - Remaining number of words to be written to or read from the FIFO."],["R","Register `FIFOCNT` reader"]]});

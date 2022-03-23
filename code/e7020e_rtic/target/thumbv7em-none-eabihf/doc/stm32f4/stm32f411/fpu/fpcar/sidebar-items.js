@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["ADDRESS_R","Field `ADDRESS` reader - Location of unpopulated floating-point"],["ADDRESS_W","Field `ADDRESS` writer - Location of unpopulated floating-point"],["FPCAR_SPEC","Floating-point context address register"],["R","Register `FPCAR` reader"],["W","Register `FPCAR` writer"]]});

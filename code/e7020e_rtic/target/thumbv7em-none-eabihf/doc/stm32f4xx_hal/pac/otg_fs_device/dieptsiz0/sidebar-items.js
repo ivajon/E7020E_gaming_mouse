@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["DIEPTSIZ0_SPEC","device endpoint-0 transfer size register"],["PKTCNT_R","Field `PKTCNT` reader - Packet count"],["PKTCNT_W","Field `PKTCNT` writer - Packet count"],["R","Register `DIEPTSIZ0` reader"],["W","Register `DIEPTSIZ0` writer"],["XFRSIZ_R","Field `XFRSIZ` reader - Transfer size"],["XFRSIZ_W","Field `XFRSIZ` writer - Transfer size"]]});

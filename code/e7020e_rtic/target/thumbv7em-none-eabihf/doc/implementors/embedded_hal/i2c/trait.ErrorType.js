@@ -1,4 +1,0 @@
-(function() {var implementors = {};
-implementors["embedded_hal"] = [];
-implementors["stm32f4xx_hal"] = [{"text":"impl&lt;I2C:&nbsp;<a class=\"trait\" href=\"stm32f4xx_hal/i2c/trait.Instance.html\" title=\"trait stm32f4xx_hal::i2c::Instance\">Instance</a>, PINS&gt; <a class=\"trait\" href=\"embedded_hal/i2c/trait.ErrorType.html\" title=\"trait embedded_hal::i2c::ErrorType\">ErrorType</a> for <a class=\"struct\" href=\"stm32f4xx_hal/i2c/struct.I2c.html\" title=\"struct stm32f4xx_hal::i2c::I2c\">I2c</a>&lt;I2C, PINS&gt;","synthetic":false,"types":["stm32f4xx_hal::i2c::I2c"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

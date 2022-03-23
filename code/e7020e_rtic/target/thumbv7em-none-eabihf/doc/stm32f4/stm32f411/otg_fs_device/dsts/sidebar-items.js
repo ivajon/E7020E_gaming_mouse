@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["DSTS_SPEC","OTG_FS device status register (OTG_FS_DSTS)"],["EERR_R","Field `EERR` reader - Erratic error"],["ENUMSPD_R","Field `ENUMSPD` reader - Enumerated speed"],["FNSOF_R","Field `FNSOF` reader - Frame number of the received SOF"],["R","Register `DSTS` reader"],["SUSPSTS_R","Field `SUSPSTS` reader - Suspend status"]]});

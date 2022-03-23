@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["KEYR_SPEC","Flash key register"],["KEY_W","Field `KEY` writer - FPEC key"],["W","Register `KEYR` writer"]]});

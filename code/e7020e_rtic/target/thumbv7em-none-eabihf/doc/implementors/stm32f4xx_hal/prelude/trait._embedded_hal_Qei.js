@@ -1,3 +1,0 @@
-(function() {var implementors = {};
-implementors["stm32f4xx_hal"] = [{"text":"impl&lt;TIM:&nbsp;<a class=\"trait\" href=\"stm32f4xx_hal/qei/trait.Instance.html\" title=\"trait stm32f4xx_hal::qei::Instance\">Instance</a>, PINS&gt; <a class=\"trait\" href=\"stm32f4xx_hal/prelude/trait._embedded_hal_Qei.html\" title=\"trait stm32f4xx_hal::prelude::_embedded_hal_Qei\">Qei</a> for <a class=\"struct\" href=\"stm32f4xx_hal/qei/struct.Qei.html\" title=\"struct stm32f4xx_hal::qei::Qei\">Qei</a>&lt;TIM, PINS&gt;","synthetic":false,"types":["stm32f4xx_hal::qei::Qei"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

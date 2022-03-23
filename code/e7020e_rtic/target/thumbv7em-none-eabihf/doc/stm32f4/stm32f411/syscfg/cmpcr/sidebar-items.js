@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["CMPCR_SPEC","Compensation cell control register"],["CMP_PD_R","Field `CMP_PD` reader - Compensation cell power-down"],["R","Register `CMPCR` reader"],["READY_R","Field `READY` reader - READY"]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["RegisterBlock","Register block for ARMv7-M"]]});

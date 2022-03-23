@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["FSLSPCS_R","Field `FSLSPCS` reader - FS/LS PHY clock select"],["FSLSPCS_W","Field `FSLSPCS` writer - FS/LS PHY clock select"],["FSLSS_R","Field `FSLSS` reader - FS- and LS-only support"],["HCFG_SPEC","OTG_FS host configuration register (OTG_FS_HCFG)"],["R","Register `HCFG` reader"],["W","Register `HCFG` writer"]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["CR2_SPEC","control register 2"],["MMS_R","Field `MMS` reader - Master mode selection"],["MMS_W","Field `MMS` writer - Master mode selection"],["R","Register `CR2` reader"],["W","Register `CR2` writer"]]});

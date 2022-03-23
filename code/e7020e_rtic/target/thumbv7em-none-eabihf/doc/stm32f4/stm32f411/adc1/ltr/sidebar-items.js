@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["LTR_SPEC","watchdog lower threshold register"],["LT_R","Field `LT` reader - Analog watchdog lower threshold"],["LT_W","Field `LT` writer - Analog watchdog lower threshold"],["R","Register `LTR` reader"],["W","Register `LTR` writer"]]});

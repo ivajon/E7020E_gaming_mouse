@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["HAINTMSK_SPEC","OTG_FS host all channels interrupt mask register"],["HAINTM_R","Field `HAINTM` reader - Channel interrupt mask"],["HAINTM_W","Field `HAINTM` writer - Channel interrupt mask"],["R","Register `HAINTMSK` reader"],["W","Register `HAINTMSK` writer"]]});

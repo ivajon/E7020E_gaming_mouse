@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Delay","Periodic non-blocking timer that imlements [embedded_hal::blocking::delay] traits"],["SysDelay","Timer as a delay provider (SysTick by default)"]],"type":[["DelayMs","`Delay` with precision of 1 ms (1 kHz sampling)"],["DelayUs","`Delay` with precision of 1 μs (1 MHz sampling)"]]});

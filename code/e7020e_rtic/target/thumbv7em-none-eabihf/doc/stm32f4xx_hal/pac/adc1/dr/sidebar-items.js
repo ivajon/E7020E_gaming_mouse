@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["DATA_R","Field `DATA` reader - Regular data"],["DR_SPEC","regular data register"],["R","Register `DR` reader"]]});

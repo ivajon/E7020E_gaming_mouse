@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["EightBitBus",""],["FourBitBus",""],["I2CBus",""]],"trait":[["DataBus",""]]});

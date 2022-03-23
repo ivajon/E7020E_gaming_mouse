@@ -1,1 +1,0 @@
-initSidebarItems({"mod":[["cr","power control register"],["csr","power control/status register"]],"struct":[["RegisterBlock","Register block"]],"type":[["CR","CR register accessor: an alias for `Reg<CR_SPEC>`"],["CSR","CSR register accessor: an alias for `Reg<CSR_SPEC>`"]]});

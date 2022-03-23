@@ -63,9 +63,9 @@ mod app {
     
     type Button = ErasedPin<Input<PullDown>>;
     // Types for spi interface
-    type SCK = Pin<Alternate<PushPull, 5_u8>, 'B', 3_u8>;
-    type MOSI = Pin<Alternate<PushPull, 5_u8>, 'B', 5_u8>;
-    type MISO = Pin<Alternate<PushPull, 5_u8>, 'B', 4_u8>;
+    type SCK = Pin<Alternate<PushPull, 5_u8>, 'A', 5_u8>;
+    type MOSI = Pin<Alternate<PushPull, 5_u8>, 'A', 7_u8>;
+    type MISO = Pin<Alternate<PushPull, 5_u8>, 'A', 6_u8>;
     type CS = Pin<Output<PushPull>, 'A', 4_u8>;
     type SPI = Spi<SPI1, (SCK, MISO, MOSI), TransferModeNormal>;
     // Types for pmw3389 device driver
@@ -132,9 +132,9 @@ mod app {
         };
 
         // Configure pmw3389 sensor
-        let sck         : SCK       = gpiob.pb3.into_alternate().set_speed(Speed::VeryHigh);
-        let miso        : MISO      = gpiob.pb4.into_alternate().set_speed(Speed::High);
-        let mosi        : MOSI      = gpiob.pb5.into_alternate().set_speed(Speed::High);
+        let sck         : SCK       = gpioa.pa5.into_alternate().set_speed(Speed::VeryHigh);
+        let miso        : MISO      = gpioa.pa6.into_alternate().set_speed(Speed::High);
+        let mosi        : MOSI      = gpioa.pa7.into_alternate().set_speed(Speed::High);
         let cs          : CS        = gpioa.pa4.into_push_pull_output().set_speed(Speed::High);
         let spi         : SPI       = Spi::new(dp.SPI1, (sck, miso, mosi), MODE_3, 1.MHz(), &clocks);
         let delay       : DELAY     = dp.TIM5.delay_us(&clocks);
