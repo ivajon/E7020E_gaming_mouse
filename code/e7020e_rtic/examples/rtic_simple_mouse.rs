@@ -196,9 +196,11 @@ mod app {
         let mut EXTI = dp.EXTI;
         let ts = 0;
         (
-            Shared {mouse,EXTI},
-            Local 
-            { 
+            Shared {
+                mouse,
+                EXTI
+            },
+            Local { 
                 usb_dev,
                 hid,
                 left,
