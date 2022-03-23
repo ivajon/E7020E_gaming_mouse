@@ -134,14 +134,14 @@ where
         // read product id, should be 0x47
         let mut id = pmw3389.product_id()?;
         rprintln!("product_id 0x{:x}", id);
-        while id!=0x47 {
+        /**while id!=0x47 {
             pmw3389.com_end();
             pmw3389.delay.delay_us(40);
             pmw3389.com_begin();
             pmw3389.delay.delay_us(40);
             id = pmw3389.product_id()?;
             rprintln!("product_id 0x{:x}", id);
-        }
+        }*/
 
         // returns the current SROM id
         let srom_id = pmw3389.read_register(Register::SROMId)?;

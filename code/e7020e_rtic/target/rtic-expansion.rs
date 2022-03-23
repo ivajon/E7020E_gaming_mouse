@@ -32,12 +32,12 @@
             }
         }
     } use app :: pmw3389 :: Pmw3389 ; use app :: mouseReport :: MouseState ;
-    use app :: PCA9624PW :: * ; use app :: hidDescriptors :: MouseKeyboard ;
-    use app :: mouseKeyboardReport :: MouseKeyboardState ; use eeprom ::
-    EEPROM ; use stm32f4 :: stm32f401 :: * ; use rtt_target ::
-    { rprintln, rtt_init_print } ; use dwt_systick_monotonic :: * ; use
-    usb_device :: { bus :: UsbBusAllocator, prelude :: *, endpoint :: * } ;
-    use usbd_hid ::
+    use app :: pca9624_pw :: * ; use app :: hidDescriptors :: MouseKeyboard ;
+    use app :: mouseKeyboardReport :: MouseKeyboardState ; use app ::
+    rgb_pattern_things :: * ; use eeprom :: EEPROM ; use stm32f4 :: stm32f401
+    :: * ; use rtt_target :: { rprintln, rtt_init_print } ; use
+    dwt_systick_monotonic :: * ; use usb_device ::
+    { bus :: UsbBusAllocator, prelude :: *, endpoint :: * } ; use usbd_hid ::
     { descriptor :: { generator_prelude :: * }, hid_class :: HIDClass, } ; use
     stm32f4xx_hal ::
     {
@@ -55,8 +55,15 @@
     DELAY = Delay < TIM5, 1000000_u32 > ; type PMW3389 = Pmw3389 < SPI, CS,
     DELAY > ; type SCL = Pin < Alternate < OpenDrain, 4_u8 >, 'A', 8_u8 > ;
     type SDA = Pin < Alternate < OpenDrain, 4_u8 >, 'C', 9_u8 > ; type I2C =
-    I2c < I2C3, (SCL, SDA) > ; const POLL_INTERVAL_MS : u8 = 1 ; #[no_mangle]
-    fn delay(td : u32)
+    I2c < I2C3, (SCL, SDA) > ; type SERIAL_BUSS < 'a > = usbd_serial ::
+    SerialPort < 'a, UsbBus < USB > > ; const POLL_INTERVAL_MS : u8 = 1 ; fn
+    init_button(btn : & mut Button, exti : & mut EXTI, edge : stm32f4xx_hal ::
+                gpio :: Edge, sys_cfg : & mut stm32f4xx_hal :: syscfg ::
+                SysCfg)
+    {
+        btn.make_interrupt_source(sys_cfg) ; btn.enable_interrupt(exti) ;
+        btn.trigger_on_edge(exti, edge) ;
+    } #[no_mangle] fn delay(td : u32)
     {
         let time = monotonics :: now().ticks() as u32 ;
         while(monotonics :: now().ticks() as u32 - time) < td { }
@@ -88,51 +95,44 @@
         = gpioc.pc9.into_alternate_open_drain() ; let mut i2c : I2C = I2c ::
         new(dp.I2C3, (scl, sda), Mode :: from(1.MHz()), & clocks) ; let mut
         interfaces = standard_interfaces() ; let mut rgb_controller :
-        PCA9624PW = PCA9624PW :: new(i2c, interfaces, 0xC0) ; let mut motion :
-        Button = gpiob.pb13.into_pull_down_input().erase() ; let mut phase_a :
-        Button = gpiob.pb2.into_pull_down_input().erase() ; let mut phase_b :
-        Button = gpioc.pc10.into_pull_down_input().erase() ; let mut left :
-        Button = gpiob.pb0.into_pull_down_input().erase() ; let mut right :
-        Button = gpiob.pb1.into_pull_down_input().erase() ; let mut middle :
-        Button = gpiob.pb12.into_pull_down_input().erase() ; let mut front :
-        Button = gpioc.pc5.into_pull_down_input().erase() ; let mut back :
-        Button = gpioc.pc4.into_pull_down_input().erase() ;
-        phase_a.make_interrupt_source(& mut sys_cfg) ;
-        phase_b.make_interrupt_source(& mut sys_cfg) ;
-        phase_a.enable_interrupt(& mut dp.EXTI) ;
-        phase_b.enable_interrupt(& mut dp.EXTI) ;
-        phase_a.trigger_on_edge(& mut dp.EXTI, Edge :: Rising) ;
-        phase_b.trigger_on_edge(& mut dp.EXTI, Edge :: Rising) ;
-        left.make_interrupt_source(& mut sys_cfg) ;
-        left.enable_interrupt(& mut dp.EXTI) ;
-        left.trigger_on_edge(& mut dp.EXTI, Edge :: RisingFalling) ;
-        right.make_interrupt_source(& mut sys_cfg) ;
-        right.enable_interrupt(& mut dp.EXTI) ;
-        right.trigger_on_edge(& mut dp.EXTI, Edge :: RisingFalling) ;
-        middle.make_interrupt_source(& mut sys_cfg) ;
-        middle.enable_interrupt(& mut dp.EXTI) ;
-        middle.trigger_on_edge(& mut dp.EXTI, Edge :: RisingFalling) ;
-        front.make_interrupt_source(& mut sys_cfg) ;
-        front.enable_interrupt(& mut dp.EXTI) ;
-        front.trigger_on_edge(& mut dp.EXTI, Edge :: RisingFalling) ;
-        back.make_interrupt_source(& mut sys_cfg) ;
-        back.enable_interrupt(& mut dp.EXTI) ;
-        back.trigger_on_edge(& mut dp.EXTI, Edge :: RisingFalling) ;
-        cx.local.bus.replace(UsbBus :: new(usb, cx.local.EP_MEMORY)) ; let mut
-        serial = usbd_serial :: SerialPort ::
-        new(cx.local.bus.as_ref().unwrap()) ; let hid = HIDClass ::
+        PCA9624PW = PCA9624PW :: new(i2c, interfaces, 0xC0) ; let mut
+        rgb_pattern_driver = RgbController :: new(rgb_controller) ; let mut
+        motion : Button = gpiob.pb13.into_pull_down_input().erase() ; let mut
+        phase_a : Button = gpiob.pb2.into_pull_down_input().erase() ; let mut
+        phase_b : Button = gpioc.pc10.into_pull_down_input().erase() ; let mut
+        left : Button = gpiob.pb0.into_pull_down_input().erase() ; let mut
+        right : Button = gpiob.pb1.into_pull_down_input().erase() ; let mut
+        middle : Button = gpiob.pb12.into_pull_down_input().erase() ; let mut
+        front : Button = gpioc.pc5.into_pull_down_input().erase() ; let mut
+        back : Button = gpioc.pc4.into_pull_down_input().erase() ;
+        init_button(& mut phase_a, & mut dp.EXTI, Edge :: Rising, & mut
+                    sys_cfg) ;
+        init_button(& mut phase_b, & mut dp.EXTI, Edge :: Rising, & mut
+                    sys_cfg) ;
+        init_button(& mut left, & mut dp.EXTI, Edge :: RisingFalling, & mut
+                    sys_cfg) ;
+        init_button(& mut right, & mut dp.EXTI, Edge :: RisingFalling, & mut
+                    sys_cfg) ;
+        init_button(& mut middle, & mut dp.EXTI, Edge :: RisingFalling, & mut
+                    sys_cfg) ;
+        init_button(& mut front, & mut dp.EXTI, Edge :: RisingFalling, & mut
+                    sys_cfg) ;
+        init_button(& mut back, & mut dp.EXTI, Edge :: RisingFalling, & mut
+                    sys_cfg) ;
+        cx.local.bus.replace(UsbBus :: new(usb, cx.local.EP_MEMORY)) ; let hid
+        = HIDClass ::
         new(cx.local.bus.as_ref().unwrap(), MouseKeyboard :: desc(),
             POLL_INTERVAL_MS,) ; let mouse = MouseKeyboardState ::
         new(pmw3389) ; let usb_dev = UsbDeviceBuilder ::
         new(cx.local.bus.as_ref().unwrap(),
             UsbVidPid(0xc410,
-                      0x000)).manufacturer("Ivar och Erik").product("Banger gaming mus").serial_number("1234").device_class(0).max_power(500).build()
+                      0x000)).manufacturer("Ivar och Erik").product("Banger gaming mus").serial_number("1234").max_power(500).composite_with_iads().build()
         ; usb_dev.remote_wakeup_enabled() ; let mut EXTI = dp.EXTI ; let ts =
         0 ;
         (Shared { mouse, EXTI }, Local
          {
              usb_dev, hid, left, right, middle, front, back, phase_a, phase_b,
-             motion, ts
+             motion, ts, rgb_pattern_driver
          }, init :: Monotonics(mono))
     } #[allow(non_snake_case)] fn idle(mut cx : idle :: Context) ->!
     {
@@ -232,16 +232,19 @@
         [0u8 ; 1024] ; match hid.pull_raw_output(& mut buf).ok()
         {
             Some(len) =>
-            {
-                rprintln! ("{:?}", buf) ; handle_host_call ::
-                spawn(buf).unwrap() ;
-            }, None => { }
+            { rprintln! ("{:?}", buf) ; handle_host_call :: spawn(buf) ; },
+            None => { }
         }
         cx.shared.mouse.lock(| mouse |
                              {
                                  let report = mouse.get_report_and_reset() ;
                                  hid.push_input(& report).ok() ;
                              }) ; if usb_dev.poll(& mut [hid]) { return ; }
+    } #[allow(non_snake_case)] fn
+    pattern_itterator(cx : pattern_itterator :: Context)
+    {
+        use rtic :: Mutex as _ ; use rtic :: mutex_prelude :: * ; let mut step
+        = cx.local.rgb_pattern_driver.next_color() ;
     } #[allow(non_snake_case)] fn
     handle_host_call(mut cx : handle_host_call :: Context, buffer :
                      [u8 ; 1024])
@@ -268,7 +271,7 @@
         usb_dev : UsbDevice < 'static, UsbBus < USB > >, hid : HIDClass <
         'static, UsbBus < USB > >, left : Button, right : Button, middle :
         Button, front : Button, back : Button, phase_a : Button, phase_b :
-        Button, motion : Button, ts : u32,
+        Button, motion : Button, ts : u32, rgb_pattern_driver : RgbController,
     } #[allow(non_snake_case)] #[allow(non_camel_case_types)]
     #[doc = "Local resources `init` has access to"] pub struct
     __rtic_internal_initLocalResources < >
@@ -595,6 +598,188 @@
         as LocalResources ; #[doc(inline)] pub use super ::
         __rtic_internal_usb_fsSharedResources as SharedResources ; pub use
         super :: __rtic_internal_usb_fs_Context as Context ;
+    } #[allow(non_snake_case)] #[allow(non_camel_case_types)]
+    #[doc = "Local resources `pattern_itterator` has access to"] pub struct
+    __rtic_internal_pattern_itteratorLocalResources < 'a >
+    { pub rgb_pattern_driver : & 'a mut RgbController, }
+    #[doc = r" Execution context"] #[allow(non_snake_case)]
+    #[allow(non_camel_case_types)] pub struct
+    __rtic_internal_pattern_itterator_Context < 'a >
+    {
+        #[doc = r" Local Resources this task has access to"] pub local :
+        pattern_itterator :: LocalResources < 'a >,
+    } impl < 'a > __rtic_internal_pattern_itterator_Context < 'a >
+    {
+        #[inline(always)] pub unsafe fn
+        new(priority : & 'a rtic :: export :: Priority) -> Self
+        {
+            __rtic_internal_pattern_itterator_Context
+            { local : pattern_itterator :: LocalResources :: new(), }
+        }
+    } #[doc = r" Spawns the task directly"] pub fn
+    __rtic_internal_pattern_itterator_spawn() -> Result < (), () >
+    {
+        let input = () ; unsafe
+        {
+            if let Some(index) = rtic :: export :: interrupt ::
+            free(| _ |
+                 (& mut *
+                  __rtic_internal_pattern_itterator_FQ.get_mut()).dequeue())
+            {
+                (& mut *
+                 __rtic_internal_pattern_itterator_INPUTS.get_mut()).get_unchecked_mut(usize
+                                                                                       ::
+                                                                                       from(index)).as_mut_ptr().write(input)
+                ; rtic :: export :: interrupt ::
+                free(| _ |
+                     {
+                         (& mut *
+                          __rtic_internal_P1_RQ.get_mut()).enqueue_unchecked((P1_T
+                                                                              ::
+                                                                              pattern_itterator,
+                                                                              index))
+                         ;
+                     }) ; rtic ::
+                pend(stm32f4 :: stm32f401 :: interrupt :: DMA1_STREAM0) ;
+                Ok(())
+            } else { Err(input) }
+        }
+    } #[allow(non_snake_case)] #[allow(non_camel_case_types)] pub struct
+    __rtic_internal_pattern_itterator_MyMono_SpawnHandle
+    { #[doc(hidden)] marker : u32, } impl core :: fmt :: Debug for
+    __rtic_internal_pattern_itterator_MyMono_SpawnHandle
+    {
+        fn fmt(& self, f : & mut core :: fmt :: Formatter < '_ >) -> core ::
+        fmt :: Result { f.debug_struct("MyMono::SpawnHandle").finish() }
+    } impl __rtic_internal_pattern_itterator_MyMono_SpawnHandle
+    {
+        pub fn cancel(self) -> Result < (), () >
+        {
+            rtic :: export :: interrupt ::
+            free(| _ | unsafe
+                 {
+                     let tq = & mut * __rtic_internal_TQ_MyMono.get_mut() ; if
+                     let Some((_task, index)) = tq.cancel_marker(self.marker)
+                     {
+                         let msg =
+                         (& *
+                          __rtic_internal_pattern_itterator_INPUTS.get()).get_unchecked(usize
+                                                                                        ::
+                                                                                        from(index)).as_ptr().read()
+                         ;
+                         (& mut *
+                          __rtic_internal_pattern_itterator_FQ.get_mut()).split().0.enqueue_unchecked(index)
+                         ; Ok(msg)
+                     } else { Err(()) }
+                 })
+        } #[inline] pub fn
+        reschedule_after(self, duration : < MyMono as rtic :: Monotonic > ::
+                         Duration) -> Result < Self, () >
+        { self.reschedule_at(monotonics :: MyMono :: now() + duration) } pub
+        fn
+        reschedule_at(self, instant : < MyMono as rtic :: Monotonic > ::
+                      Instant) -> Result < Self, () >
+        {
+            rtic :: export :: interrupt ::
+            free(| _ | unsafe
+                 {
+                     let marker =
+                     __rtic_internal_TIMER_QUEUE_MARKER.get().read() ;
+                     __rtic_internal_TIMER_QUEUE_MARKER.get_mut().write(marker.wrapping_add(1))
+                     ; let tq = (& mut * __rtic_internal_TQ_MyMono.get_mut())
+                     ;
+                     tq.update_marker(self.marker, marker, instant, || rtic ::
+                                      export :: SCB ::
+                                      set_pendst()).map(| _ |
+                                                        pattern_itterator ::
+                                                        MyMono :: SpawnHandle
+                                                        { marker })
+                 })
+        }
+    }
+    #[doc =
+      r" Spawns the task after a set duration relative to the current time"]
+    #[doc = r""]
+    #[doc =
+      r" This will use the time `Instant::new(0)` as baseline if called in `#[init]`,"]
+    #[doc =
+      r" so if you use a non-resetable timer use `spawn_at` when in `#[init]`"]
+    #[allow(non_snake_case)] pub fn
+    __rtic_internal_pattern_itterator_MyMono_spawn_after(duration : < MyMono
+                                                         as rtic :: Monotonic
+                                                         > :: Duration) ->
+    Result < pattern_itterator :: MyMono :: SpawnHandle, () >
+    {
+        let instant = monotonics :: MyMono :: now() ;
+        __rtic_internal_pattern_itterator_MyMono_spawn_at(instant + duration)
+    } #[doc = r" Spawns the task at a fixed time instant"]
+    #[allow(non_snake_case)] pub fn
+    __rtic_internal_pattern_itterator_MyMono_spawn_at(instant : < MyMono as
+                                                      rtic :: Monotonic > ::
+                                                      Instant) -> Result <
+    pattern_itterator :: MyMono :: SpawnHandle, () >
+    {
+        unsafe
+        {
+            let input = () ; if let Some(index) = rtic :: export :: interrupt
+            ::
+            free(| _ |
+                 (& mut *
+                  __rtic_internal_pattern_itterator_FQ.get_mut()).dequeue())
+            {
+                (& mut *
+                 __rtic_internal_pattern_itterator_INPUTS.get_mut()).get_unchecked_mut(usize
+                                                                                       ::
+                                                                                       from(index)).as_mut_ptr().write(input)
+                ;
+                (& mut *
+                 __rtic_internal_pattern_itterator_MyMono_INSTANTS.get_mut()).get_unchecked_mut(usize
+                                                                                                ::
+                                                                                                from(index)).as_mut_ptr().write(instant)
+                ; rtic :: export :: interrupt ::
+                free(| _ |
+                     {
+                         let marker =
+                         __rtic_internal_TIMER_QUEUE_MARKER.get().read() ; let
+                         nr = rtic :: export :: NotReady
+                         {
+                             instant, index, task : SCHED_T ::
+                             pattern_itterator, marker,
+                         } ;
+                         __rtic_internal_TIMER_QUEUE_MARKER.get_mut().write(__rtic_internal_TIMER_QUEUE_MARKER.get().read().wrapping_add(1))
+                         ; let tq = & mut *
+                         __rtic_internal_TQ_MyMono.get_mut() ;
+                         tq.enqueue_unchecked(nr, || core :: mem :: transmute
+                                              :: < _, rtic :: export :: SYST >
+                                              (()).enable_interrupt(), || rtic
+                                              :: export :: SCB ::
+                                              set_pendst(),
+                                              (& mut *
+                                               __rtic_internal_MONOTONIC_STORAGE_MyMono.get_mut()).as_mut())
+                         ;
+                         Ok(pattern_itterator :: MyMono :: SpawnHandle
+                            { marker })
+                     })
+            } else { Err(input) }
+        }
+    } #[allow(non_snake_case)] #[doc = "Software task"] pub mod
+    pattern_itterator
+    {
+        #[doc(inline)] pub use super ::
+        __rtic_internal_pattern_itteratorLocalResources as LocalResources ;
+        pub use super :: __rtic_internal_pattern_itterator_Context as Context
+        ; pub use super :: __rtic_internal_pattern_itterator_spawn as spawn ;
+        pub use MyMono :: spawn_after ; pub use MyMono :: spawn_at ; pub use
+        MyMono :: SpawnHandle ; pub mod MyMono
+        {
+            pub use super :: super ::
+            __rtic_internal_pattern_itterator_MyMono_spawn_after as
+            spawn_after ; pub use super :: super ::
+            __rtic_internal_pattern_itterator_MyMono_spawn_at as spawn_at ;
+            pub use super :: super ::
+            __rtic_internal_pattern_itterator_MyMono_SpawnHandle as
+            SpawnHandle ;
+        }
     } #[doc = r" Execution context"] #[allow(non_snake_case)]
     #[allow(non_camel_case_types)] pub struct
     __rtic_internal_handle_host_call_Context < > { } impl < >
@@ -1060,6 +1245,11 @@
     MaybeUninit < u32 >> = rtic :: RacyCell ::
     new(core :: mem :: MaybeUninit :: uninit()) ;
     #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
+    #[doc(hidden)] #[link_section = ".uninit.rtic13"] static
+    __rtic_internal_local_resource_rgb_pattern_driver : rtic :: RacyCell <
+    core :: mem :: MaybeUninit < RgbController >> = rtic :: RacyCell ::
+    new(core :: mem :: MaybeUninit :: uninit()) ;
+    #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
     #[doc(hidden)] static __rtic_internal_local_init_EP_MEMORY : rtic ::
     RacyCell < [u32 ; 1024] > = rtic :: RacyCell :: new([0 ; 1024]) ;
     #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
@@ -1302,16 +1492,42 @@
             }
         }
     } #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
+    #[doc(hidden)] static __rtic_internal_pattern_itterator_FQ : rtic ::
+    RacyCell < rtic :: export :: SCFQ < 2 > > = rtic :: RacyCell ::
+    new(rtic :: export :: Queue :: new()) ; #[link_section = ".uninit.rtic14"]
+    #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
+    #[doc(hidden)] static __rtic_internal_pattern_itterator_MyMono_INSTANTS :
+    rtic :: RacyCell <
+    [core :: mem :: MaybeUninit << DwtSystick < FREQ_CORE > as rtic ::
+     Monotonic > :: Instant > ; 1] > = rtic :: RacyCell ::
+    new([core :: mem :: MaybeUninit :: uninit(),]) ;
+    #[link_section = ".uninit.rtic15"] #[allow(non_camel_case_types)]
+    #[allow(non_upper_case_globals)] #[doc(hidden)] static
+    __rtic_internal_pattern_itterator_INPUTS : rtic :: RacyCell <
+    [core :: mem :: MaybeUninit < () > ; 1] > = rtic :: RacyCell ::
+    new([core :: mem :: MaybeUninit :: uninit(),]) ; impl < 'a >
+    __rtic_internal_pattern_itteratorLocalResources < 'a >
+    {
+        #[inline(always)] pub unsafe fn new() -> Self
+        {
+            __rtic_internal_pattern_itteratorLocalResources
+            {
+                rgb_pattern_driver : & mut *
+                (& mut *
+                 __rtic_internal_local_resource_rgb_pattern_driver.get_mut()).as_mut_ptr(),
+            }
+        }
+    } #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
     #[doc(hidden)] static __rtic_internal_handle_host_call_FQ : rtic ::
     RacyCell < rtic :: export :: SCFQ < 2 > > = rtic :: RacyCell ::
-    new(rtic :: export :: Queue :: new()) ; #[link_section = ".uninit.rtic13"]
+    new(rtic :: export :: Queue :: new()) ; #[link_section = ".uninit.rtic16"]
     #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
     #[doc(hidden)] static __rtic_internal_handle_host_call_MyMono_INSTANTS :
     rtic :: RacyCell <
     [core :: mem :: MaybeUninit << DwtSystick < FREQ_CORE > as rtic ::
      Monotonic > :: Instant > ; 1] > = rtic :: RacyCell ::
     new([core :: mem :: MaybeUninit :: uninit(),]) ;
-    #[link_section = ".uninit.rtic14"] #[allow(non_camel_case_types)]
+    #[link_section = ".uninit.rtic17"] #[allow(non_camel_case_types)]
     #[allow(non_upper_case_globals)] #[doc(hidden)] static
     __rtic_internal_handle_host_call_INPUTS : rtic :: RacyCell <
     [core :: mem :: MaybeUninit < [u8 ; 1024] > ; 1] > = rtic :: RacyCell ::
@@ -1319,14 +1535,14 @@
     #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
     #[doc(hidden)] static __rtic_internal_handle_dpi_FQ : rtic :: RacyCell <
     rtic :: export :: SCFQ < 2 > > = rtic :: RacyCell ::
-    new(rtic :: export :: Queue :: new()) ; #[link_section = ".uninit.rtic15"]
+    new(rtic :: export :: Queue :: new()) ; #[link_section = ".uninit.rtic18"]
     #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)]
     #[doc(hidden)] static __rtic_internal_handle_dpi_MyMono_INSTANTS : rtic ::
     RacyCell <
     [core :: mem :: MaybeUninit << DwtSystick < FREQ_CORE > as rtic ::
      Monotonic > :: Instant > ; 1] > = rtic :: RacyCell ::
     new([core :: mem :: MaybeUninit :: uninit(),]) ;
-    #[link_section = ".uninit.rtic16"] #[allow(non_camel_case_types)]
+    #[link_section = ".uninit.rtic19"] #[allow(non_camel_case_types)]
     #[allow(non_upper_case_globals)] #[doc(hidden)] static
     __rtic_internal_handle_dpi_INPUTS : rtic :: RacyCell <
     [core :: mem :: MaybeUninit < u16 > ; 1] > = rtic :: RacyCell ::
@@ -1344,10 +1560,10 @@
         }
     } #[allow(non_snake_case)] #[allow(non_camel_case_types)]
     #[derive(Clone, Copy)] #[doc(hidden)] pub enum P1_T
-    { handle_dpi, handle_host_call, } #[doc(hidden)]
+    { handle_dpi, handle_host_call, pattern_itterator, } #[doc(hidden)]
     #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)] static
     __rtic_internal_P1_RQ : rtic :: RacyCell < rtic :: export :: SCRQ < P1_T,
-    3 > > = rtic :: RacyCell :: new(rtic :: export :: Queue :: new()) ;
+    4 > > = rtic :: RacyCell :: new(rtic :: export :: Queue :: new()) ;
     #[allow(non_snake_case)]
     #[doc = "Interrupt handler to dispatch tasks at priority 1"] #[no_mangle]
     unsafe fn DMA1_STREAM0()
@@ -1389,6 +1605,20 @@
                             new(PRIORITY) ;
                             handle_host_call(handle_host_call :: Context ::
                                              new(priority), _0)
+                        } P1_T :: pattern_itterator =>
+                        {
+                            let() =
+                            (& *
+                             __rtic_internal_pattern_itterator_INPUTS.get()).get_unchecked(usize
+                                                                                           ::
+                                                                                           from(index)).as_ptr().read()
+                            ;
+                            (& mut *
+                             __rtic_internal_pattern_itterator_FQ.get_mut()).split().0.enqueue_unchecked(index)
+                            ; let priority = & rtic :: export :: Priority ::
+                            new(PRIORITY) ;
+                            pattern_itterator(pattern_itterator :: Context ::
+                                              new(priority))
                         }
                     }
                 }
@@ -1397,10 +1627,10 @@
     #[allow(non_upper_case_globals)] static __rtic_internal_TIMER_QUEUE_MARKER
     : rtic :: RacyCell < u32 > = rtic :: RacyCell :: new(0) ; #[doc(hidden)]
     #[allow(non_camel_case_types)] #[derive(Clone, Copy)] pub enum SCHED_T
-    { handle_host_call, handle_dpi, } #[doc(hidden)]
+    { pattern_itterator, handle_host_call, handle_dpi, } #[doc(hidden)]
     #[allow(non_camel_case_types)] #[allow(non_upper_case_globals)] static
     __rtic_internal_TQ_MyMono : rtic :: RacyCell < rtic :: export ::
-    TimerQueue < DwtSystick < FREQ_CORE >, SCHED_T, 2 > > = rtic :: RacyCell
+    TimerQueue < DwtSystick < FREQ_CORE >, SCHED_T, 3 > > = rtic :: RacyCell
     ::
     new(rtic :: export ::
         TimerQueue(rtic :: export :: SortedLinkedList :: new_u16())) ;
@@ -1427,7 +1657,19 @@
         {
             match task
             {
-                SCHED_T :: handle_host_call =>
+                SCHED_T :: pattern_itterator =>
+                {
+                    rtic :: export :: interrupt ::
+                    free(| _ |
+                         (& mut *
+                          __rtic_internal_P1_RQ.get_mut()).split().0.enqueue_unchecked((P1_T
+                                                                                        ::
+                                                                                        pattern_itterator,
+                                                                                        index)))
+                    ; rtic ::
+                    pend(you_must_enable_the_rt_feature_for_the_pac_in_your_cargo_toml
+                         :: interrupt :: DMA1_STREAM0) ;
+                } SCHED_T :: handle_host_call =>
                 {
                     rtic :: export :: interrupt ::
                     free(| _ |
@@ -1468,9 +1710,15 @@
             :: export :: assert_send :: < HIDClass < 'static, UsbBus < USB > >
             > () ; rtic :: export :: assert_send :: < Button > () ; rtic ::
             export :: assert_send :: < u32 > () ; rtic :: export ::
+            assert_send :: < RgbController > () ; rtic :: export ::
             assert_send :: < [u8 ; 1024] > () ; rtic :: export :: assert_send
             :: < u16 > () ; rtic :: export :: assert_monotonic :: < DwtSystick
             < FREQ_CORE > > () ; rtic :: export :: interrupt :: disable() ;
+            (0 ..
+             1u8).for_each(| i |
+                           (& mut *
+                            __rtic_internal_pattern_itterator_FQ.get_mut()).enqueue_unchecked(i))
+            ;
             (0 ..
              1u8).for_each(| i |
                            (& mut *
@@ -1684,6 +1932,14 @@
                                                                                         MaybeUninit
                                                                                         ::
                                                                                         new(local_resources.ts))
+                                      ;
+                                      __rtic_internal_local_resource_rgb_pattern_driver.get_mut().write(core
+                                                                                                        ::
+                                                                                                        mem
+                                                                                                        ::
+                                                                                                        MaybeUninit
+                                                                                                        ::
+                                                                                                        new(local_resources.rgb_pattern_driver))
                                       ; monotonics.0.reset() ;
                                       __rtic_internal_MONOTONIC_STORAGE_MyMono.get_mut().write(Some(monotonics.0))
                                       ; rtic :: export :: interrupt ::

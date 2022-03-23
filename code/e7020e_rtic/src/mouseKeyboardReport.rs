@@ -151,8 +151,8 @@ impl MouseKeyboardState {
 
     pub fn get_report_and_reset(&mut self) -> MouseKeyboard{
         let ret = MouseKeyboard {
-            x: self.x,
-            y: self.y,
+            x: 0,//self.x,
+            y: 0,//self.y,
             buttons: make_button(self.left_button, self.middle_button, self.right_button),
             wheel: self.wheel,
             pan: 0,

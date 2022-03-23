@@ -17,9 +17,10 @@ mod app {
     // Relative app imports
     use app::pmw3389::Pmw3389;
     use app::mouseReport::MouseState;
-    use app::PCA9624PW::*;
+    use app::pca9624_pw::*;
     use app::hidDescriptors::MouseKeyboard;
     use app::mouseKeyboardReport::MouseKeyboardState;
+    use app::rgb_pattern_things::*;
     // Absolute imports
     use eeprom::EEPROM;
     use stm32f4::stm32f401::*;
@@ -75,6 +76,7 @@ mod app {
     type SDA = Pin<Alternate<OpenDrain, 4_u8>, 'C', 9_u8>;
     type I2C = I2c<I2C3, (SCL, SDA)>;
     
+    type SERIAL_BUSS<'a> = usbd_serial::SerialPort<'a,UsbBus<USB> > ;
     
     #[shared]
     struct Shared {
@@ -94,7 +96,8 @@ mod app {
         phase_a : Button,
         phase_b : Button,
         motion : Button,
-        ts : u32
+        ts : u32,
+        rgb_pattern_driver : RgbController
     }
 
     const POLL_INTERVAL_MS: u8 = 1;
@@ -142,10 +145,15 @@ mod app {
         let scl         : SCL       = gpioa.pa8.into_alternate_open_drain();
         let sda         : SDA       = gpioc.pc9.into_alternate_open_drain();
         let mut i2c     : I2C       = I2c::new(dp.I2C3, (scl,sda), Mode::from(1.MHz()), &clocks); 
-
+        
         
         let mut interfaces = standard_interfaces();
         let mut rgb_controller:PCA9624PW = PCA9624PW::new(i2c,interfaces,0xC0); // Might be 0xC2
+        // Initiates the pattern controller
+        let mut rgb_pattern_driver = RgbController::new(rgb_controller);
+
+
+
         // Configure IO pins
         let mut motion:Button = gpiob.pb13.into_pull_down_input().erase();
         let mut phase_a:Button = gpiob.pb2.into_pull_down_input().erase();
@@ -156,53 +164,16 @@ mod app {
         let mut front:Button = gpioc.pc5.into_pull_down_input().erase();
         let mut back:Button = gpioc.pc4.into_pull_down_input().erase();
 
-
-        /*
-        loop {
-            if left.is_high() {
-                rprintln!("is high");
-            } else {
-                rprintln!("is low");
-            }
-        }
-        */
-
-        // enable mouse sensor motion interrupt
-        //motion.make_interrupt_source(&mut sys_cfg);
-        //motion.enable_interrupt(&mut dp.EXTI);
-        //motion.trigger_on_edge(&mut dp.EXTI, Edge::Falling);
-        // enable scroll wheel
-        phase_a.make_interrupt_source(&mut sys_cfg);
-        phase_b.make_interrupt_source(&mut sys_cfg);
-        phase_a.enable_interrupt(&mut dp.EXTI);
-        phase_b.enable_interrupt(&mut dp.EXTI);
-        phase_a.trigger_on_edge(&mut dp.EXTI, Edge::Rising);
-        phase_b.trigger_on_edge(&mut dp.EXTI, Edge::Rising);
-        // Enable left button interrupt
-        left.make_interrupt_source(&mut sys_cfg);
-        left.enable_interrupt(&mut dp.EXTI);
-        left.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
-        // Enable right button interrupt
-        right.make_interrupt_source(&mut sys_cfg);
-        right.enable_interrupt(&mut dp.EXTI);
-        right.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
-        // Enable middle button interrupt
-        middle.make_interrupt_source(&mut sys_cfg);
-        middle.enable_interrupt(&mut dp.EXTI);
-        middle.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
-        // Enable front button interrupt
-        front.make_interrupt_source(&mut sys_cfg);
-        front.enable_interrupt(&mut dp.EXTI);
-        front.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
-        // Enable back button interrupt
-        back.make_interrupt_source(&mut sys_cfg);
-        back.enable_interrupt(&mut dp.EXTI);
-        back.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
-
+        init_button(&mut phase_a,&mut dp.EXTI,Edge::Rising,&mut sys_cfg);
+        init_button(&mut phase_b,&mut dp.EXTI,Edge::Rising,&mut sys_cfg);
+        init_button(&mut left,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
+        init_button(&mut right,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
+        init_button(&mut middle,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
+        init_button(&mut front,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
+        init_button(&mut back,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
+        
         cx.local.bus.replace(UsbBus::new(usb, cx.local.EP_MEMORY));
-
-        // This would be nice, not sure if it's gonna work though.
-        let mut serial = usbd_serial::SerialPort::new(cx.local.bus.as_ref().unwrap());
+        // Configure usb class
         let hid = HIDClass::new(
             cx.local.bus.as_ref().unwrap(),
             MouseKeyboard::desc(),
@@ -215,22 +186,51 @@ mod app {
                 .manufacturer("Ivar och Erik")
                 .product("Banger gaming mus")
                 .serial_number("1234")
-                .device_class(0) // Hid
                 .max_power(500) // Just take all the power
+                .composite_with_iads()      // Define as a composite device
                 .build();
         // Enable host wakeup
         usb_dev.remote_wakeup_enabled();
         // It seems that we can install multiple endpoints
         // We would need to denfine 
-
         let mut EXTI = dp.EXTI;
         let ts = 0;
         (
             Shared {mouse,EXTI},
-            Local { usb_dev, hid, left, right, middle, front, back, phase_a,phase_b,motion,ts},
+            Local 
+            { 
+                usb_dev,
+                hid,
+                left,
+                right, 
+                middle, 
+                front, 
+                back, 
+                phase_a,
+                phase_b,
+                motion,
+                ts,
+                rgb_pattern_driver
+            },
             init::Monotonics(mono)
         )
     }
+    fn init_button(btn : &mut Button,  exti : &mut EXTI,edge : stm32f4xx_hal::gpio::Edge,sys_cfg : &mut stm32f4xx_hal::syscfg::SysCfg){
+        btn.make_interrupt_source(sys_cfg);
+        btn.enable_interrupt(exti);
+        btn.trigger_on_edge(exti, edge);
+
+    }
+
+    /// defines a simple pattern loop this should be started at startup when there is some form of pre saved pattern
+    #[task(local = [rgb_pattern_driver])]
+    fn pattern_itterator(cx : pattern_itterator::Context){
+        let mut step = cx.local.rgb_pattern_driver.next_color();
+        //pattern_itterator::spawn_after(dwt_systick_monotonic::fugit::Duration(step as u32));
+    }
+
+
+
 
     #[task(binds=EXTI15_10,priority = 2, local = [middle,motion,ts], shared = [mouse])]
     fn middle_hand(mut cx: middle_hand::Context) {
@@ -249,6 +249,7 @@ mod app {
         }
         
     }
+    
     /*#[task(binds=EXTI0, priority = 2, local = [left], shared = [mouse])]
     extern "Rust"{
     mouse.left_button();
@@ -270,7 +271,6 @@ mod app {
             });
         }
     }
-
     #[task(binds=EXTI1, local = [right], shared = [mouse])]
     fn right_hand(mut cx: right_hand::Context) {
         // this should be automatic
@@ -394,7 +394,7 @@ mod app {
             Some(len) => {
                 // The mouse has been polled for update purposes
                 rprintln!("{:?}",buf);
-                handle_host_call::spawn(buf).unwrap();
+                handle_host_call::spawn(buf);
             },
             None => {
             }

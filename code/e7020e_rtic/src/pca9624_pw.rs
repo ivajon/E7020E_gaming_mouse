@@ -140,7 +140,13 @@ impl interface{
     //================================================
     /// Sets the color of the interface
     /// 0 = off, 255 = full brightness
-    pub fn set_all_channels(&mut self,r:u8,g:u8,b:u8){
+    pub fn set_all_channels(&mut self,color : Color){
+        self.color = color;
+    }
+    /// Sets the color of the interface
+    /// 0 = off, 255 = full brightness
+    pub fn set_all_channels_from_value(&mut self,r:u8,g:u8,b:u8){
+        self.color = Color::new(r,g,b);
         self.set_r(r);
         self.set_g(g);
         self.set_b(b);
@@ -151,7 +157,6 @@ impl interface{
         let offset : u32 = 8 ;
         let mask   : u32 = (u8::MAX as u32) << offset;
         let hex    : u32 = self.color.to_hex() & !mask;
-        self.color.modfie_from_hex(hex | ((val as u32)<<offset));
     }
     /// Sets the green channel
     /// 0 = off, 255 = full brightness
@@ -243,13 +248,20 @@ impl PCA9624PW {
         }
     }
     // Writes to a set of 3 registers
-    pub fn set_colour(&mut self,interface_id : u8, r : u8, g : u8, b : u8) {
+    pub fn set_colour_from_values(&mut self,interface_id : u8, r : u8, g : u8, b : u8) {
         // Since we only use the 2 paths
         if interface_id > 1 {
             panic!("Interface must be between 0 and 1");
         }
-        self.interfaces[interface_id as usize].set_all_channels(r,g,b);
+        self.interfaces[interface_id as usize].set_all_channels_from_value(r,g,b);
     }
-    // Sets the colour of the given interface
+    // Writes to a set of 3 registers
+    pub fn set_colour(&mut self,interface_id : u8,color : Color) {
+        // Since we only use the 2 paths
+        if interface_id > 1 {
+            panic!("Interface must be between 0 and 1");
+        }
+        self.interfaces[interface_id as usize].set_all_channels(color);
+    }
 
 }

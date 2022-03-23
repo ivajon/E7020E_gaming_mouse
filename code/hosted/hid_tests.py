@@ -9,28 +9,31 @@ def handle_input(args):
             print_ui()
         elif "dpi" in args[1].lower():
             print("""
-            Sets the dpi of the mouse
-            dpi <dpi>
-            where dpi is an int
+                Sets the dpi of the mouse
+                dpi <dpi>
+                where dpi is an int
             """)
         elif "rgb" in args[1].lower():
             print("""
-            Sets the rgb color of the mouse
-            rgb <r> <g> <b>
-            where r,g,b are ints
+                Sets the rgb color of the mouse
+                rgb <r> <g> <b>
+                where r,g,b are ints
             """)
         elif "macro" in args[1].lower():
             print("""
-            You caught me, this interface is not done yet
-            come back later
+                You caught me, this interface is not done yet
+                come back later
             """)
         else:
             print_ui()
+
+    
     elif  "dpi" in section:
             if len(args) < 2:
                 return
             print(f"Setting the dpi to : {args[1]}")
             mouse.set_dpi(int(args[1]))
+            
     elif "rgb" in section:
         print("Setting the rgb color")
         pass
