@@ -20,6 +20,7 @@ mod app {
     use app::pca9624_pw::*;
     use app::hidDescriptors::MouseKeyboard;
     use app::mouseKeyboardReport::MouseKeyboardState;
+    use app::macroSystem::*;
     use app::rgb_pattern_things::*;
     // Absolute imports
     use eeprom::EEPROM;
@@ -81,6 +82,7 @@ mod app {
     #[shared]
     struct Shared {
         mouse: MouseKeyboardState,
+        macro_conf: MacroConfig,
         EXTI : EXTI,
     }
     
@@ -164,13 +166,13 @@ mod app {
         let mut front:Button = gpioc.pc5.into_pull_down_input().erase();
         let mut back:Button = gpioc.pc4.into_pull_down_input().erase();
 
-        init_button(&mut phase_a,&mut dp.EXTI,Edge::Rising,&mut sys_cfg);
-        init_button(&mut phase_b,&mut dp.EXTI,Edge::Rising,&mut sys_cfg);
-        init_button(&mut left,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
-        init_button(&mut right,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
-        init_button(&mut middle,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
-        init_button(&mut front,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
-        init_button(&mut back,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
+        enable_interrupt(&mut phase_a,&mut dp.EXTI,Edge::Rising,&mut sys_cfg);
+        enable_interrupt(&mut phase_b,&mut dp.EXTI,Edge::Rising,&mut sys_cfg);
+        enable_interrupt(&mut left,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
+        enable_interrupt(&mut right,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
+        enable_interrupt(&mut middle,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
+        enable_interrupt(&mut front,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
+        enable_interrupt(&mut back,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
         
         cx.local.bus.replace(UsbBus::new(usb, cx.local.EP_MEMORY));
         // Configure usb class
@@ -179,6 +181,9 @@ mod app {
             MouseKeyboard::desc(),
             POLL_INTERVAL_MS,
         );
+
+        // setup macro system
+        let macro_conf = MacroConfig::new();
 
         let mouse = MouseKeyboardState::new(pmw3389);
         let usb_dev =
@@ -198,6 +203,7 @@ mod app {
         (
             Shared {
                 mouse,
+                macro_conf,
                 EXTI
             },
             Local { 
@@ -217,7 +223,7 @@ mod app {
             init::Monotonics(mono)
         )
     }
-    fn init_button(btn : &mut Button,  exti : &mut EXTI,edge : stm32f4xx_hal::gpio::Edge,sys_cfg : &mut stm32f4xx_hal::syscfg::SysCfg){
+    fn enable_interrupt(btn : &mut Button,  exti : &mut EXTI,edge : stm32f4xx_hal::gpio::Edge,sys_cfg : &mut stm32f4xx_hal::syscfg::SysCfg){
         btn.make_interrupt_source(sys_cfg);
         btn.enable_interrupt(exti);
         btn.trigger_on_edge(exti, edge);
@@ -232,22 +238,77 @@ mod app {
     }
 
 
+    /**************************
+     * Macro system functions *
+     **************************/
+
+    #[task(shared = [mouse], priority = 1, capacity = 100)]
+    fn end_macro(mut cx: end_macro::Context, f: Function) {
+        cx.shared.mouse.lock(|mouse| {
+            end_function(f, mouse);
+        });
+    }
+
+    #[task(shared = [mouse, macro_conf], priority = 1, capacity = 100)]
+    fn do_macro(mut cx: do_macro::Context, m: usize, i: usize) {
+        cx.shared.macro_conf.lock(|conf| {
+            if i == MACRO_SIZE {
+                return;
+            }
+            let (function, delay, time) = conf.get_macro_params(m, i);
+            if matches!(function, Function::End) {
+                return;
+            }
+            cx.shared.mouse.lock(|mouse| {
+                do_function(function, mouse);
+            });
+            do_macro::spawn_after(delay.millis(), m, i + 1).unwrap();
+            end_macro::spawn_after(time.millis(), function).unwrap();
+        });
+    }
+
+    fn handle_macro(conf: &MacroConfig, m: MacroType, mouse: &mut MouseKeyboardState, is_push: bool) {
+        match m {
+            MacroType::MacroSingle(f) => {
+                match is_push {
+                    true => do_function(f, mouse),
+                    false => end_function(f, mouse),
+                }
+            },
+            MacroType::MacroMultiple(s) => {
+                match is_push {
+                    true => {
+                        let ms = conf.get_macro_first_delay(s);
+                        do_macro::spawn_after(ms.millis(), s, 0).unwrap();
+                    }
+                    _ => (),
+                }
+            }
+        }
+    }
+    /******************************
+     * End macro system functions *
+     ******************************/
 
 
-    #[task(binds=EXTI15_10,priority = 2, local = [middle,motion,ts], shared = [mouse])]
+    #[task(binds=EXTI15_10,priority = 2, local = [middle,motion,ts], shared = [mouse, macro_conf])]
     fn middle_hand(mut cx: middle_hand::Context) {
         // this should be automatic
         cx.local.middle.clear_interrupt_pending_bit();
         if cx.local.middle.is_low() {
-                rprintln!("middle low");
+            rprintln!("middle low");
+            cx.shared.macro_conf.lock(|conf| {
                 cx.shared.mouse.lock(|mouse| {
-                    mouse.release_middle();
+                    handle_macro(conf, conf.middle_button, mouse, false);
                 });
-        } else if cx.local.middle.is_high() {
-                rprintln!("middle high");
+            });
+        } else {
+            rprintln!("middle high");
+            cx.shared.macro_conf.lock(|conf| {
                 cx.shared.mouse.lock(|mouse| {
-                    mouse.push_middle();
+                    handle_macro(conf, conf.middle_button, mouse, true);
                 });
+            });
         }
         
     }
@@ -256,37 +317,45 @@ mod app {
     extern "Rust"{
     mouse.left_button();
     }*/
-    #[task(binds=EXTI0, priority = 2, local = [left], shared = [mouse])]
+    #[task(binds=EXTI0, priority = 2, local = [left], shared = [mouse, macro_conf])]
     fn left_hand(mut cx: left_hand::Context) {
         // this should be automatic
         cx.local.left.clear_interrupt_pending_bit();
 
         if cx.local.left.is_low() {
             rprintln!("left low");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.release_left();
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.left_button, mouse, false);
+                });
             });
         } else {
             rprintln!("left high");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.push_left();
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.left_button, mouse, true);
+                });
             });
         }
     }
-    #[task(binds=EXTI1, local = [right], shared = [mouse])]
+    #[task(binds=EXTI1, local = [right], shared = [mouse, macro_conf])]
     fn right_hand(mut cx: right_hand::Context) {
         // this should be automatic
         cx.local.right.clear_interrupt_pending_bit();
 
         if cx.local.right.is_low() {
             rprintln!("right low");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.release_right();
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.right_button, mouse, false);
+                });
             });
         } else {
             rprintln!("right high");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.push_right();
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.right_button, mouse, true);
+                });
             });
         }
     }
@@ -301,7 +370,7 @@ mod app {
         });
         
     }
-    #[task(binds=EXTI9_5, local = [front,phase_b], shared = [mouse,EXTI])]
+    #[task(binds=EXTI9_5, local = [front,phase_b], shared = [mouse, macro_conf, EXTI])]
     fn front_hand(mut cx: front_hand::Context) {
         cx.local.front.clear_interrupt_pending_bit();
         cx.local.phase_b.clear_interrupt_pending_bit();
@@ -313,26 +382,29 @@ mod app {
         } 
         else
         {
-                if cx.local.front.is_low() {
-                    rprintln!("front low");
+            if cx.local.front.is_low() {
+                rprintln!("front low");
+                cx.shared.macro_conf.lock(|conf| {
                     cx.shared.mouse.lock(|mouse| {
-                    
+                        handle_macro(conf, conf.side_button_front, mouse, false);
+                    });
                 });
             } else {
                 rprintln!("front high");
-                cx.shared.mouse.lock(|mouse| {
-                    mouse.increment_dpi(1);
-                    //mouse.push_front();
+                cx.shared.macro_conf.lock(|conf| {
+                    cx.shared.mouse.lock(|mouse| {
+                        handle_macro(conf, conf.side_button_front, mouse, true);
+                    });
                 });
             }
             // Temporarelly disable interrupts
-            cx.shared.EXTI.lock(|EXTI|{
-                cx.local.front.disable_interrupt(EXTI);
-            });
-            delay(160000);
-            cx.shared.EXTI.lock(|EXTI|{
-                cx.local.front.enable_interrupt(EXTI);
-            });
+            //cx.shared.EXTI.lock(|EXTI|{
+            //    cx.local.front.disable_interrupt(EXTI);
+            //});
+            //delay(160000);
+            //cx.shared.EXTI.lock(|EXTI|{
+            //    cx.local.front.enable_interrupt(EXTI);
+            //});
         }
     }
     #[no_mangle]
@@ -341,29 +413,31 @@ mod app {
         while(monotonics::now().ticks() as u32 - time) <  td{}
     }
 
-    #[task(binds=EXTI4, local = [back], shared = [mouse,EXTI])]
+    #[task(binds=EXTI4, local = [back], shared = [mouse, macro_conf, EXTI])]
     fn back_hand(mut cx: back_hand::Context) {
         // this should be automatic
         cx.local.back.clear_interrupt_pending_bit();
         // Temporarelly disable interrupts
-        cx.shared.EXTI.lock(|EXTI|{
-            cx.local.back.disable_interrupt(EXTI);
-        });
-        delay(160000);
-        cx.shared.EXTI.lock(|EXTI|{
-            cx.local.back.enable_interrupt(EXTI);
-        });
+        //cx.shared.EXTI.lock(|EXTI|{
+        //    cx.local.back.disable_interrupt(EXTI);
+        //});
+        //delay(160000);
+        //cx.shared.EXTI.lock(|EXTI|{
+        //    cx.local.back.enable_interrupt(EXTI);
+        //});
         if cx.local.back.is_low() {
             rprintln!("back low");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.increment_dpi(-1);
-                //mouse.release_front();
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.side_button_back, mouse, false);
+                });
             });
         } else {
-            //rprintln!("back high");
-            cx.shared.mouse.lock(|mouse| {
-                
-                //mouse.push_front();
+            rprintln!("back high");
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.side_button_back, mouse, true);
+                });
             });
         }
     }
