@@ -124,6 +124,7 @@ mod app {
         let gpioa = dp.GPIOA.split();
         let gpiob = dp.GPIOB.split();
         let gpioc = dp.GPIOC.split();
+        let gpiod = dp.GPIOD.split();
         // define usb config
         let usb = USB {
             usb_global: dp.OTG_FS_GLOBAL,
@@ -160,7 +161,7 @@ mod app {
 
         // Configure IO pins
         let mut motion:Button = gpiob.pb13.into_pull_down_input().erase();
-        let mut phase_a:Scroll = gpioc.pa12.into_pull_up_input().erase();
+        let mut phase_a:Scroll = gpioc.pc12.into_pull_up_input().erase();
         let mut phase_b:Scroll = gpioc.pc11.into_pull_up_input().erase();
         let mut left:Button = gpiob.pb9.into_pull_down_input().erase();
         let mut right:Button = gpiob.pb4.into_pull_down_input().erase();
@@ -313,7 +314,7 @@ mod app {
 
 
     #[task(binds=EXTI9_5,priority = 2, local = [middle, left, back, lf: bool = false, mf: bool = false, bf: bool = false], shared = [mouse, macro_conf])]
-    fn middle_left_hand(mut cx: middle_hand::Context) {
+    fn middle_left_hand(mut cx: middle_left_hand::Context) {
         // this should be automatic
         cx.local.middle.clear_interrupt_pending_bit();
         cx.local.left.clear_interrupt_pending_bit();
@@ -335,7 +336,7 @@ mod app {
             });
         } else if cx.local.left.is_low() && *cx.local.lf {
             rprintln!("left low");
-            cx.local.lf = false;
+            *cx.local.lf = false;
             cx.shared.macro_conf.lock(|conf| {
                 cx.shared.mouse.lock(|mouse| {
                     handle_macro(conf, conf.left_button, mouse, false);
@@ -343,7 +344,7 @@ mod app {
             });
         } else if cx.local.left.is_high() && !*cx.local.lf {
             rprintln!("left high");
-            cx.local.lf = true;
+            *cx.local.lf = true;
             cx.shared.macro_conf.lock(|conf| {
                 cx.shared.mouse.lock(|mouse| {
                     handle_macro(conf, conf.left_button, mouse, true);
@@ -351,18 +352,18 @@ mod app {
             });
         } else if cx.local.back.is_low() && *cx.local.bf {
             rprintln!("left low");
-            cx.local.lf = false;
+            *cx.local.lf = false;
             cx.shared.macro_conf.lock(|conf| {
                 cx.shared.mouse.lock(|mouse| {
-                    handle_macro(conf, conf.back_button, mouse, false);
+                    handle_macro(conf, conf.side_button_back, mouse, false);
                 });
             });
         } else if cx.local.back.is_high() && !*cx.local.bf {
             rprintln!("left high");
-            cx.local.lf = true;
+            *cx.local.lf = true;
             cx.shared.macro_conf.lock(|conf| {
                 cx.shared.mouse.lock(|mouse| {
-                    handle_macro(conf, conf.back_button, mouse, true);
+                    handle_macro(conf, conf.side_button_back, mouse, true);
                 });
             });
         }
@@ -414,35 +415,6 @@ mod app {
     fn delay(td:u32){
         let time = monotonics::now().ticks() as u32;
         while(monotonics::now().ticks() as u32 - time) <  td{}
-    }
-
-    #[task(binds=EXTI4, local = [back], shared = [mouse, macro_conf, EXTI])]
-    fn back_hand(mut cx: back_hand::Context) {
-        // this should be automatic
-        cx.local.back.clear_interrupt_pending_bit();
-        // Temporarelly disable interrupts
-        //cx.shared.EXTI.lock(|EXTI|{
-        //    cx.local.back.disable_interrupt(EXTI);
-        //});
-        //delay(160000);
-        //cx.shared.EXTI.lock(|EXTI|{
-        //    cx.local.back.enable_interrupt(EXTI);
-        //});
-        if cx.local.back.is_low() {
-            rprintln!("back low");
-            cx.shared.macro_conf.lock(|conf| {
-                cx.shared.mouse.lock(|mouse| {
-                    handle_macro(conf, conf.side_button_back, mouse, false);
-                });
-            });
-        } else {
-            rprintln!("back high");
-            cx.shared.macro_conf.lock(|conf| {
-                cx.shared.mouse.lock(|mouse| {
-                    handle_macro(conf, conf.side_button_back, mouse, true);
-                });
-            });
-        }
     }
 
     // interrupt generated each time the hid device is polled
