@@ -98,6 +98,123 @@ impl MacroConfig {
             copy_array::<u32>(hold_times, &mut m_sequence.hold_times);
         }
     }
+    
+    fn change_macro_function(&mut self, macro_nr: usize, index: usize, f: Function) {
+        if macro_nr < self.macros.len() {
+            let m_sequence = &mut self.macros[macro_nr];
+            m_sequence.functions[index] = f;
+        }
+    }
+
+    fn change_macro_time(&mut self, macro_nr: usize, index: usize, time: u32) {
+        if macro_nr < self.macros.len() {
+            let m_sequence = &mut self.macros[macro_nr];
+            m_sequence.hold_times[index] = time;
+        }
+    }
+
+    fn change_macro_delay(&mut self, macro_nr: usize, index: usize, delay: u32) {
+        if macro_nr < self.macros.len() {
+            let m_sequence = &mut self.macros[macro_nr];
+            m_sequence.delays[index] = delay;
+        }
+    }
+    
+    fn change_button_mapping(&mut self, button_id: u8, m: MacroType) {
+        match button_id {
+            0 => self.left_button = m,
+            1 => self.right_button = m,
+            2 => self.middle_button = m,
+            3 => self.scroll_up = m,
+            4 => self.scroll_down = m,
+            5 => self.side_button_front = m,
+            6 => self.side_button_back = m,
+            _ => ()
+        }
+    }
+
+    /// this handle configuration via a binary blob
+    /// 
+    /// 8 byte in total
+    /// 
+    /// 1 byte - deside system <- don't touch
+    /// 2 byte - subcommand
+    /// 3 -8 byte - data
+    /// 
+    /// macro nr (8 bit)
+    /// 
+    /// Subcommands:
+    /// 0 : change button to single function - args: button id, function id, keycode
+    /// 1 : change button to multiple macro - args: button id, macro nr
+    /// 2 : change function in macro - args: macro nr, index (8 bit),  Function id, keycode
+    /// 3 : change delay in macro - args: macro nr, index (8 bit), data
+    /// 4 : change time in macro - args: macro nr, index (8 bit), data
+    /// 
+    /// Button ids (8 bit):
+    /// 0 left
+    /// 1 right
+    /// 2 middle
+    /// 3 scroll-up
+    /// 4 scroll-down
+    /// 5 front
+    /// 6 back
+    /// 
+    /// Function ids (8 bit):
+    /// 0 leftclick
+    /// 1 rightclick
+    /// 2 middleclick
+    /// 3 scroll-up
+    /// 4 scroll-down
+    /// 5 dpi-up
+    /// 6 dpi-down
+    /// 7 push-key
+    /// 8 End
+    /// 9 Nothing
+    /// 
+    pub fn handle_binary_config(&mut self, bytes: &[u8; 8]) {
+        let subcommand: u8 = bytes[1];
+
+        match subcommand {
+            0 => {
+                self.change_button_mapping(
+                    bytes[2],
+                    MacroType::MacroSingle(
+                        Function::from_id(
+                            bytes[3], bytes[4]
+                        )
+                    )
+                );
+            }
+            1 => {
+                self.change_button_mapping(
+                    bytes[2],
+                    MacroType::MacroMultiple(usize::from(bytes[3]))
+                );
+            }
+            2 => {
+                self.change_macro_function(
+                    usize::from(bytes[2]),
+                    usize::from(bytes[3]),
+                    Function::from_id(bytes[4], bytes[5])
+                );
+            }
+            3 => {
+                self.change_macro_delay(
+                    usize::from(bytes[2]),
+                    usize::from(bytes[3]),
+                    u32::from_be_bytes(bytes[4..8].try_into().unwrap())
+                );
+            }
+            4 => {
+                self.change_macro_time(
+                    usize::from(bytes[2]),
+                    usize::from(bytes[3]),
+                    u32::from_be_bytes(bytes[4..8].try_into().unwrap())
+                )
+            }
+            _ => ()
+        }
+    }
 }
 
 fn copy_array<T: Copy>(sorce: [T; MACRO_SIZE], destination: &mut [T]) {
@@ -165,7 +282,38 @@ pub enum Function {
     MiddleClick,
     ScrollUp,
     ScrollDown,
+    DpiUp,
+    DpiDown,
     PressKeyboard(u8),
     Nothing,
     End,
+}
+
+impl Function {
+    /// Function ids (8 bit):
+    /// 0 leftclick
+    /// 1 rightclick
+    /// 2 middleclick
+    /// 3 scroll-up
+    /// 4 scroll-down
+    /// 5 dpi-up
+    /// 6 dpi-down
+    /// 7 push-key
+    /// 8 End
+    /// 9 Nothing
+    fn from_id(id: u8, keycode: u8) -> Function {
+        match id {
+            0 => Function::LeftClick,
+            1 => Function::RightClick,
+            2 => Function::MiddleClick,
+            3 => Function::ScrollUp,
+            4 => Function::ScrollDown,
+            5 => Function::DpiUp,
+            6 => Function::DpiDown,
+            7 => Function::PressKeyboard(keycode),
+            8 => Function::End,
+            9 => Function::Nothing,
+            _ => Function::Nothing,
+        }
+    }
 }

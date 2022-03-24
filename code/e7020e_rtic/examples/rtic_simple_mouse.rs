@@ -63,6 +63,7 @@ mod app {
 
     
     type Button = ErasedPin<Input<PullDown>>;
+    type Scroll = ErasedPin<Input<PullUp>>;
     // Types for spi interface
     type SCK = Pin<Alternate<PushPull, 5_u8>, 'A', 5_u8>;
     type MOSI = Pin<Alternate<PushPull, 5_u8>, 'A', 7_u8>;
@@ -95,8 +96,8 @@ mod app {
         middle: Button,
         front: Button,
         back: Button,
-        phase_a : Button,
-        phase_b : Button,
+        phase_a : Scroll,
+        phase_b : Scroll,
         motion : Button,
         ts : u32,
         rgb_pattern_driver : RgbController
@@ -158,16 +159,24 @@ mod app {
 
         // Configure IO pins
         let mut motion:Button = gpiob.pb13.into_pull_down_input().erase();
-        let mut phase_a:Button = gpiob.pb2.into_pull_down_input().erase();
-        let mut phase_b:Button = gpioc.pc10.into_pull_down_input().erase();
+        let mut phase_a = gpiob.pb2.into_pull_up_input().erase();
+        let mut phase_b = gpioc.pc10.into_pull_up_input().erase();
         let mut left:Button = gpiob.pb0.into_pull_down_input().erase();
         let mut right:Button = gpiob.pb1.into_pull_down_input().erase();
         let mut middle:Button = gpiob.pb12.into_pull_down_input().erase();
         let mut front:Button = gpioc.pc5.into_pull_down_input().erase();
         let mut back:Button = gpioc.pc4.into_pull_down_input().erase();
+        
 
-        enable_interrupt(&mut phase_a,&mut dp.EXTI,Edge::Rising,&mut sys_cfg);
-        enable_interrupt(&mut phase_b,&mut dp.EXTI,Edge::Rising,&mut sys_cfg);
+        //phase_a.make_interrupt_source(&mut sys_cfg);
+        //phase_a.enable_interrupt(&mut dp.EXTI);
+        //phase_a.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
+        //phase_b.make_interrupt_source(&mut sys_cfg);
+        //phase_b.enable_interrupt(&mut dp.EXTI);
+        //phase_b.trigger_on_edge(&mut dp.EXTI, Edge::RisingFalling);
+
+        //enable_interrupt(&mut phase_a,&mut dp.EXTI,Edge::Rising,&mut sys_cfg);
+        //enable_interrupt(&mut phase_b,&mut dp.EXTI,Edge::Rising,&mut sys_cfg);
         enable_interrupt(&mut left,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
         enable_interrupt(&mut right,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
         enable_interrupt(&mut middle,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
@@ -183,7 +192,16 @@ mod app {
         );
 
         // setup macro system
-        let macro_conf = MacroConfig::new();
+        let mut macro_conf = MacroConfig::new();
+        macro_conf.update_config(
+            MacroType::MacroSingle(Function::LeftClick),
+            MacroType::MacroSingle(Function::RightClick),
+            MacroType::MacroSingle(Function::PressKeyboard(4)),
+            MacroType::MacroSingle(Function::ScrollUp),
+            MacroType::MacroSingle(Function::ScrollDown),
+            MacroType::MacroSingle(Function::PressKeyboard(5)),
+            MacroType::MacroSingle(Function::PressKeyboard(6)),
+        );
 
         let mouse = MouseKeyboardState::new(pmw3389);
         let usb_dev =
@@ -291,24 +309,30 @@ mod app {
      ******************************/
 
 
-    #[task(binds=EXTI15_10,priority = 2, local = [middle,motion,ts], shared = [mouse, macro_conf])]
+    #[task(binds=EXTI15_10,priority = 2, local = [middle, phase_a, phase_b, motion, ts], shared = [mouse, macro_conf])]
     fn middle_hand(mut cx: middle_hand::Context) {
         // this should be automatic
         cx.local.middle.clear_interrupt_pending_bit();
-        if cx.local.middle.is_low() {
-            rprintln!("middle low");
-            cx.shared.macro_conf.lock(|conf| {
-                cx.shared.mouse.lock(|mouse| {
-                    handle_macro(conf, conf.middle_button, mouse, false);
-                });
-            });
-        } else {
-            rprintln!("middle high");
-            cx.shared.macro_conf.lock(|conf| {
-                cx.shared.mouse.lock(|mouse| {
-                    handle_macro(conf, conf.middle_button, mouse, true);
-                });
-            });
+        cx.local.phase_a.clear_interrupt_pending_bit();
+        //if cx.local.middle.is_low() {
+        //    rprintln!("middle low");
+        //    cx.shared.macro_conf.lock(|conf| {
+        //        cx.shared.mouse.lock(|mouse| {
+        //            handle_macro(conf, conf.middle_button, mouse, false);
+        //        });
+        //    });
+        //} else {
+        //    rprintln!("middle high");
+        //    cx.shared.macro_conf.lock(|conf| {
+        //        cx.shared.mouse.lock(|mouse| {
+        //            handle_macro(conf, conf.middle_button, mouse, true);
+        //        });
+        //    });
+        //}
+        /*} else */if cx.local.phase_a.is_high() {
+            rprintln!("phase_a high")
+        } else if cx.local.phase_b.is_high() {
+            rprintln!("phase_b high")
         }
         
     }
@@ -317,20 +341,22 @@ mod app {
     extern "Rust"{
     mouse.left_button();
     }*/
-    #[task(binds=EXTI0, priority = 2, local = [left], shared = [mouse, macro_conf])]
+    #[task(binds=EXTI0, priority = 2, local = [left, l_flag: bool = false], shared = [mouse, macro_conf])]
     fn left_hand(mut cx: left_hand::Context) {
         // this should be automatic
         cx.local.left.clear_interrupt_pending_bit();
 
-        if cx.local.left.is_low() {
+        if cx.local.left.is_low() && *cx.local.l_flag {
             rprintln!("left low");
+            *cx.local.l_flag = false;
             cx.shared.macro_conf.lock(|conf| {
                 cx.shared.mouse.lock(|mouse| {
                     handle_macro(conf, conf.left_button, mouse, false);
                 });
             });
-        } else {
+        } else if cx.local.left.is_high() && !*cx.local.l_flag{
             rprintln!("left high");
+            *cx.local.l_flag = true;
             cx.shared.macro_conf.lock(|conf| {
                 cx.shared.mouse.lock(|mouse| {
                     handle_macro(conf, conf.left_button, mouse, true);
@@ -359,29 +385,30 @@ mod app {
             });
         }
     }
-    #[task(binds=EXTI2, local = [phase_a], shared = [mouse])]
+
+    #[task(binds=EXTI2, local = [], shared = [mouse])]
     fn phase_a_hand(mut cx: phase_a_hand::Context) {
         // this should be automatic
-        cx.local.phase_a.clear_interrupt_pending_bit();
+        //cx.local.phase_a.clear_interrupt_pending_bit();
 
-        rprintln!("phase_a high");
-        cx.shared.mouse.lock(|mouse| {
-                mouse.handle_scroll('a');
-        });
+        //rprintln!("phase_a high");
+        //cx.shared.mouse.lock(|mouse| {
+        //        mouse.handle_scroll('a');
+        //});
         
     }
-    #[task(binds=EXTI9_5, local = [front,phase_b], shared = [mouse, macro_conf, EXTI])]
+    #[task(binds=EXTI9_5, local = [front], shared = [mouse, macro_conf, EXTI])]
     fn front_hand(mut cx: front_hand::Context) {
         cx.local.front.clear_interrupt_pending_bit();
-        cx.local.phase_b.clear_interrupt_pending_bit();
-        if cx.local.phase_b.is_high() {
-            rprintln!("phase_b low");
-            cx.shared.mouse.lock(|mouse| {
-                mouse.handle_scroll('b');
-            });
-        } 
-        else
-        {
+        //cx.local.phase_b.clear_interrupt_pending_bit();
+        //if cx.local.phase_b.is_high() {
+        //    rprintln!("phase_b low");
+        //    cx.shared.mouse.lock(|mouse| {
+        //        mouse.handle_scroll('b');
+        //    });
+        //} 
+        //else
+        //{
             if cx.local.front.is_low() {
                 rprintln!("front low");
                 cx.shared.macro_conf.lock(|conf| {
@@ -405,7 +432,7 @@ mod app {
             //cx.shared.EXTI.lock(|EXTI|{
             //    cx.local.front.enable_interrupt(EXTI);
             //});
-        }
+        //}
     }
     #[no_mangle]
     fn delay(td:u32){
@@ -464,7 +491,7 @@ mod app {
         }
 
         // Buffer could be extended if needed
-        let mut buf = [0u8; 1024];
+        let mut buf = [0u8; 8];
         match hid.pull_raw_output(&mut buf).ok(){
             // Should return almost istantaneously if there is no data
             Some(len) => {
@@ -487,8 +514,8 @@ mod app {
         }
         
     }
-    #[task()]
-    fn handle_host_call(mut cx :handle_host_call::Context,buffer : [u8;1024]) {
+    #[task(shared = [macro_conf])]
+    fn handle_host_call(mut cx :handle_host_call::Context,buffer : [u8; 8]) {
         rprintln!("handle host call");
         rprintln!("{:?}", buffer);
         // Defines an api
@@ -507,6 +534,9 @@ mod app {
             },
             0x04 => {
                 rprintln!("Macro _controll");
+                cx.shared.macro_conf.lock(|conf| {
+                    conf.handle_binary_config(&buffer);
+                });
             },
             _ => {
                 rprintln!("unknown");
@@ -529,6 +559,4 @@ mod app {
             });   
         }
     }
-    
-    
 }
