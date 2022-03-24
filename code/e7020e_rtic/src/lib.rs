@@ -11,3 +11,5 @@ pub mod hidDescriptors;
 pub mod macroSystem;
 pub mod srom;
 pub mod rgb_pattern_things;
+pub mod matr_math;
+pub mod color;

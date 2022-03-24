@@ -1,16 +1,20 @@
 //! Defines a pattern mechanic for the rgb controller
-//! TODO : implement pre generated paters
-//! TODO : implement multiple channels
+//! TODO : implement function based patterns
 use crate::pca9624_pw::{self, *};
+use crate::color::*;
 const max_pattern_length: usize = 64;
 const number_of_patterns: usize = 4;
+/// Field reprensentation
+/// ColorChange.0 = interface id
+/// color_change.1 = color 
+type ColorChange = (u8,Color);
 #[derive(Copy, Clone)]
 pub struct Pattern{
     /// The list of changes to go through
     /// To add changes instantly to both interaces
     /// we need to add them in turn to the list
     /// and set the delay in between them to 0
-    color_changes : [Color;max_pattern_length],
+    color_changes : [ColorChange;max_pattern_length],
     /// The list of delays between changes
     delays : [u16;max_pattern_length],
     /// The length of the pattern
@@ -24,7 +28,7 @@ pub struct Pattern{
 impl Pattern{
     pub fn new() -> Pattern{
         Pattern{
-            color_changes : [Color::new(0,0,0);max_pattern_length],
+            color_changes : [(0,Color::new(0,0,0));max_pattern_length],
             delays : [0;max_pattern_length],
             length : 0,
             index : 0,
@@ -32,9 +36,9 @@ impl Pattern{
     }
     
 
-    pub fn get_current_color_change(&mut self) -> (Color,u16){
+    pub fn get_current_color_change(&mut self) -> (ColorChange,u16){
         if (self.index >= self.length) {
-            let color : Color = self.color_changes[self.index];
+            let color : ColorChange = self.color_changes[self.index];
             let delay : u16 = self.delays[self.index];
             (color,delay)
         }
@@ -42,12 +46,12 @@ impl Pattern{
             let color : Color = Color::new(0,0,0);
             let delay : u16 = u16::MAX; // Wait for ever kinda
             self.index += 1;
-            (color,delay)
+            ((0,color),delay)
         }
     }
-    pub fn add_color_change(&mut self,color:Color,delay:u16){
+    pub fn add_color_change(&mut self,color_change : ColorChange,delay:u16){
         if (self.length < max_pattern_length){
-            self.color_changes[self.length] = color;
+            self.color_changes[self.length] = color_change;
             self.delays[self.length] = delay;
             self.length += 1;
         }
@@ -62,7 +66,7 @@ impl Pattern{
     /// Modifies a color at a specific index
     pub fn modify_color(&mut self,index:usize,color:Color){
         if (index < self.length){
-            self.color_changes[index] = color;
+            self.color_changes[index].1 = color;
         }
     }
     /// Modifies a delay at a specific index
@@ -74,15 +78,39 @@ impl Pattern{
     /// Modifies delay and color at a specific index
     pub fn modify_color_and_delay(&mut self,index:usize,color:Color,delay:u16){
         if (index < self.length){
-            self.color_changes[index] = color;
+            self.color_changes[index].1 = color;
             self.delays[index] = delay;
         }
     }
     /// Goes to the next colour in the pattern
-    pub fn next_color(&mut self) -> (Color,u16){
+    pub fn next_color(&mut self) -> (ColorChange,u16){
         self.index = (self.index+1)%self.length;
         // Returns the next color and delay
         self.get_current_color_change()
+    }
+    /// Makes a simple fade pattern for both channels
+    /// It only fades in one of the color lines
+    /// thus simple
+    /// 
+    /// Colorspace = 0 => green, colorspace = 1 => blue, colorspace = 2 => red
+    pub fn simple_fade(increment : u8,color_space : u8,delay:u16) -> Pattern{
+        let mut pattern = Pattern::new();
+        // Return if not a valid color space
+        if color_space > 2{
+            return pattern;
+        }
+        let mut current_color = Color::new(0,0,0);
+
+        // Define the pattern
+        for i in (0..255).step_by(increment as usize){
+            let mut hex = current_color.to_hex();
+            // Modifie the color space specified
+            hex = hex&1<<(2*color_space)
+
+        }
+
+        //  Return the pattern
+        pattern
     }
 
 }
@@ -127,9 +155,10 @@ impl RgbController{
     /// 
     /// Returns (color,delay)
     pub fn next_color(&mut self) -> u16{
-        let mut next = self.patterns[self.current_pattern].next_color();
-        self.pca.set_colour(0, next.0);
-        self.pca.write_colours(0);
+        let next = self.patterns[self.current_pattern].next_color();
+        
+        self.pca.set_colour(next.0.0, next.0.1);
+        self.pca.write_colours(next.0.0);
         next.1
     }
     

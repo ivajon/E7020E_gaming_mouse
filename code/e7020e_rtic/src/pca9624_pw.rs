@@ -1,81 +1,11 @@
 
+use rtt_target::rprintln;
 use stm32f4::stm32f401::I2C3;
 use stm32f4xx_hal::i2c::*;
 use stm32f4xx_hal::gpio::*;
+use crate::color::*;
 
 
-/// Color type for the RGB LED
-#[allow(dead_code)]
-#[derive(Clone, Copy)]
-pub struct Color{  
-    /// Red
-    /// 0-255
-    pub r : u8,
-    /// Green
-    /// 0-255
-    pub g : u8,
-    /// Blue
-    /// 0-255
-    pub b : u8,
-}
-
-impl Color
-{
-    
-    //=================================================
-    // Constructors
-    //=================================================
-    pub fn new(r : u8, g : u8, b : u8) -> Color
-    {
-        Color
-        {
-            r : r,
-            g : g,
-            b : b,
-        }
-    }
-    pub fn from_hex(hex : u32) -> Color
-    {
-        let r = (hex >> 16) as u8;
-        let g = (hex >> 8) as u8;
-        let b = (hex >> 0) as u8;
-        Color
-        {
-            r : r,
-            g : g,
-            b : b,
-        }
-    }
-    //=================================================
-    // Modifiers
-    //=================================================
-    pub fn invert(&mut self)
-    {
-        self.r = 255 - self.r;
-        self.g = 255 - self.g;
-        self.b = 255 - self.b;
-    }
-    pub fn modfie_from_hex(&mut self, hex : u32)
-    {
-        let r = (hex >> 16) as u8;
-        let g = (hex >> 8) as u8;
-        let b = (hex >> 0) as u8;
-        self.r = r;
-        self.g = g;
-        self.b = b;
-    }
-    //=================================================
-    // Representers
-    //=================================================
-    /// Returns a hex representation of the color
-    pub fn to_hex(&self) -> u32
-    {
-        let r = self.r as u32;
-        let g = self.g as u32;
-        let b = self.b as u32;
-        (r << 16) | (g << 8) | b
-    }
-}
 
 
 
@@ -220,8 +150,12 @@ impl PCA9624PW {
     // reads who am i reg, not sure if this is correct
     pub fn whoami(&mut self) -> u8 {
         let mut buf = [0u8; 1];
-        self.i2c.write(self.address, &[register_map::SUBADR1 as u8]).unwrap();
+        rprintln!("Before write");
+        self.i2c.write(self.address, &[register_map::SUBADR1 as u8]);
+       
+        rprintln!("Before read ");
         self.i2c.read(self.address, &mut buf).unwrap();
+        rprintln!("After read");
         buf[0]
     }
     /// Writes the values of the interface to the rgb controller
