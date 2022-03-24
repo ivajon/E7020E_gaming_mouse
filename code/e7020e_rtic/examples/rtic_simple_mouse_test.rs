@@ -160,13 +160,13 @@ mod app {
 
         // Configure IO pins
         let mut motion:Button = gpiob.pb13.into_pull_down_input().erase();
-        let mut phase_a:Scroll = gpioa.pa2.into_pull_up_input().erase();
-        let mut phase_b:Scroll = gpioc.pc10.into_pull_up_input().erase();
-        let mut left:Button = gpiob.pb0.into_pull_down_input().erase();
-        let mut right:Button = gpiob.pb1.into_pull_down_input().erase();
-        let mut middle:Button = gpiob.pb12.into_pull_down_input().erase();
-        let mut front:Button = gpioc.pc5.into_pull_down_input().erase();
-        let mut back:Button = gpioc.pc4.into_pull_down_input().erase();
+        let mut phase_a:Scroll = gpioc.pa12.into_pull_up_input().erase();
+        let mut phase_b:Scroll = gpioc.pc11.into_pull_up_input().erase();
+        let mut left:Button = gpiob.pb9.into_pull_down_input().erase();
+        let mut right:Button = gpiob.pb4.into_pull_down_input().erase();
+        let mut middle:Button = gpiob.pb6.into_pull_down_input().erase();
+        let mut front:Button = gpiod.pd2.into_pull_down_input().erase();
+        let mut back:Button = gpiob.pb7.into_pull_down_input().erase();
         
 
         phase_a.make_interrupt_source(&mut sys_cfg);
@@ -195,8 +195,8 @@ mod app {
         // setup macro system
         let mut macro_conf = MacroConfig::new();
         macro_conf.update_config(
-            MacroType::MacroSingle(Function::Nothing),
             MacroType::MacroSingle(Function::LeftClick),
+            MacroType::MacroSingle(Function::RightClick),
             MacroType::MacroSingle(Function::PressKeyboard(4)),
             MacroType::MacroSingle(Function::ScrollUp),
             MacroType::MacroSingle(Function::ScrollDown),
@@ -312,57 +312,63 @@ mod app {
      ******************************/
 
 
-    #[task(binds=EXTI15_10,priority = 2, local = [middle, phase_b, motion, ts], shared = [mouse, macro_conf])]
-    fn middle_hand(mut cx: middle_hand::Context) {
+    #[task(binds=EXTI9_5,priority = 2, local = [middle, left, back, lf: bool = false, mf: bool = false, bf: bool = false], shared = [mouse, macro_conf])]
+    fn middle_left_hand(mut cx: middle_hand::Context) {
         // this should be automatic
         cx.local.middle.clear_interrupt_pending_bit();
-        cx.local.phase_b.clear_interrupt_pending_bit();
-        //if cx.local.middle.is_low() {
-        //    rprintln!("middle low");
-        //    cx.shared.macro_conf.lock(|conf| {
-        //        cx.shared.mouse.lock(|mouse| {
-        //            handle_macro(conf, conf.middle_button, mouse, false);
-        //        });
-        //    });
-        //} else {
-        //    rprintln!("middle high");
-        //    cx.shared.macro_conf.lock(|conf| {
-        //        cx.shared.mouse.lock(|mouse| {
-        //            handle_macro(conf, conf.middle_button, mouse, true);
-        //        });
-        //    });
-        //}
-        /*} else */if cx.local.phase_b.is_high() {
-            rprintln!("phase_b high")
-        } else {
-            rprintln!("phase_b low")
+        cx.local.left.clear_interrupt_pending_bit();
+        if cx.local.middle.is_low() && *cx.local.mf{
+            *cx.local.mf = false;
+            rprintln!("middle low");
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.middle_button, mouse, false);
+                });
+            });
+        } else if cx.local.middle.is_high() && !*cx.local.mf {
+            rprintln!("middle high");
+            *cx.local.mf = true;
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.middle_button, mouse, true);
+                });
+            });
+        } else if cx.local.left.is_low() && *cx.local.lf {
+            rprintln!("left low");
+            cx.local.lf = false;
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.left_button, mouse, false);
+                });
+            });
+        } else if cx.local.left.is_high() && !*cx.local.lf {
+            rprintln!("left high");
+            cx.local.lf = true;
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.left_button, mouse, true);
+                });
+            });
+        } else if cx.local.back.is_low() && *cx.local.bf {
+            rprintln!("left low");
+            cx.local.lf = false;
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.back_button, mouse, false);
+                });
+            });
+        } else if cx.local.back.is_high() && !*cx.local.bf {
+            rprintln!("left high");
+            cx.local.lf = true;
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.back_button, mouse, true);
+                });
+            });
         }
-        
     }
     
-    #[task(binds=EXTI0, priority = 2, local = [left], shared = [mouse, macro_conf])]
-    fn left_hand(mut cx: left_hand::Context) {
-        // this should be automatic
-        cx.local.left.clear_interrupt_pending_bit();
-        rprintln!("left_hand");
-
-        //if cx.local.left.is_low() {
-        //    rprintln!("left low");
-        //    cx.shared.macro_conf.lock(|conf| {
-        //        cx.shared.mouse.lock(|mouse| {
-        //            handle_macro(conf, conf.left_button, mouse, false);
-        //        });
-        //    });
-        //} else if cx.local.left.is_high() {
-        //    rprintln!("left high");
-        //    cx.shared.macro_conf.lock(|conf| {
-        //        cx.shared.mouse.lock(|mouse| {
-        //            handle_macro(conf, conf.left_button, mouse, true);
-        //        });
-        //    });
-        //}
-    }
-    #[task(binds=EXTI1, local = [right], shared = [mouse, macro_conf])]
+    #[task(binds=EXTI4, local = [right], shared = [mouse, macro_conf])]
     fn right_hand(mut cx: right_hand::Context) {
         // this should be automatic
         cx.local.right.clear_interrupt_pending_bit();
@@ -383,59 +389,27 @@ mod app {
             });
         }
     }
-
-    #[task(binds=EXTI2, local = [phase_a], shared = [mouse])]
-    fn phase_a_hand(mut cx: phase_a_hand::Context) {
-        //this should be automatic
-        //cx.local.phase_a.clear_interrupt_pending_bit();
-
-        //if cx.local.phase_a.is_high() {
-        //    rprintln!("phase_a high");
-        //    //cx.shared.mouse.lock(|mouse| {
-        //    //        mouse.handle_scroll('a');
-        //    //});
-        //} else {
-        //    rprintln!("phase_b low");
-        //}
-    }
         
-    #[task(binds=EXTI9_5, local = [front], shared = [mouse, macro_conf, EXTI])]
+    #[task(binds=EXTI2, local = [front], shared = [mouse, macro_conf, EXTI])]
     fn front_hand(mut cx: front_hand::Context) {
         cx.local.front.clear_interrupt_pending_bit();
-        //cx.local.phase_b.clear_interrupt_pending_bit();
-        //if cx.local.phase_b.is_high() {
-        //    rprintln!("phase_b low");
-        //    cx.shared.mouse.lock(|mouse| {
-        //        mouse.handle_scroll('b');
-        //    });
-        //} 
-        //else
-        //{
-            if cx.local.front.is_low() {
-                rprintln!("front low");
-                cx.shared.macro_conf.lock(|conf| {
-                    cx.shared.mouse.lock(|mouse| {
-                        handle_macro(conf, conf.side_button_front, mouse, false);
-                    });
+        if cx.local.front.is_low() {
+            rprintln!("front low");
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.side_button_front, mouse, false);
                 });
-            } else {
-                rprintln!("front high");
-                cx.shared.macro_conf.lock(|conf| {
-                    cx.shared.mouse.lock(|mouse| {
-                        handle_macro(conf, conf.side_button_front, mouse, true);
-                    });
+            });
+        } else {
+            rprintln!("front high");
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.side_button_front, mouse, true);
                 });
-            }
-            // Temporarelly disable interrupts
-            //cx.shared.EXTI.lock(|EXTI|{
-            //    cx.local.front.disable_interrupt(EXTI);
-            //});
-            //delay(160000);
-            //cx.shared.EXTI.lock(|EXTI|{
-            //    cx.local.front.enable_interrupt(EXTI);
-            //});
-        //}
+            });
+        }
     }
+
     #[no_mangle]
     fn delay(td:u32){
         let time = monotonics::now().ticks() as u32;
