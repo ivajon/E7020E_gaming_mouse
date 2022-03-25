@@ -7,16 +7,16 @@ use std::path::Path;
 use std::fmt;
 
 
-fn handle_text(arg : [String;8])->[u8;8]{
+fn handle_text(arg : [String;8],device :& Device)->[u8;8]{
     match arg[0].as_str() {
         "rgb" =>{
             handle_rgb_api(arg)
         },
-        "dpi"=>{
+        "mouse"=>{
             handle_dpi_api(arg)
         },
         "macro"=>{
-            handle_macro_api(arg)
+            handle_macro_api(arg,device)
         },
         _=>{
             // Send garbage
@@ -40,7 +40,6 @@ fn str_splitter(str : String)->[String;8]{
 fn read_std_in()->[String;8]{
     let mut buffer = String::new();
     io::stdin().read_line(&mut buffer).ok();
-    
     str_splitter(buffer)
 }
 fn config_loader(device :&mut Device,file_name : &mut String){
@@ -54,7 +53,7 @@ fn config_loader(device :&mut Device,file_name : &mut String){
                     for line in lines{
                         if !line.contains("//"){
                             let args = str_splitter(String::from(line));
-                            let mut data_write = handle_text(args);
+                            let mut data_write = handle_text(args,device);
                             //println!("Writing data {:?}",data_write);
                             hid.write(&data_write);
 
@@ -75,7 +74,7 @@ fn main() {
             config_loader(&mut device,&mut args[1]);
         }
         else{
-            let mut data_write = handle_text(args);
+            let mut data_write = handle_text(args,&device);
             device.write_data(data_write);
         }
     }

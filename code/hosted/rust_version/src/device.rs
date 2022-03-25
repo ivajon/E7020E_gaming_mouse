@@ -1,11 +1,19 @@
 use hidapi::DeviceInfo;
 use hidapi::HidApi;
 use hidapi::HidDevice;
+use std::collections::HashMap;
+use std::collections::hash_map;
 use std::string;
+use std::collections;
 pub type VID = u16;
 pub type PID = u16;
 pub type DEVICE = (VID,PID);
 pub type DATA = [u8;8];
+use std::env;
+use std::fs;
+use std::path::Path;
+use std::fmt;
+
 enum functionId{
     leftclick   = 0,
     rightclick  = 1,
@@ -152,7 +160,7 @@ fn print_macro_help(){
 /// 8 End
 /// 9 Nothing
 /// 
-pub fn handle_macro_api(arg : [String;8])->[u8;8]{
+pub fn handle_macro_api(arg : [String;8],device : & Device)->[u8;8]{
     let mut ret : [u8;8] = [0x03,0,0,0,0,0,0,0];
     match arg[1].as_str(){
         "--button-to-single-function"=>{
@@ -161,14 +169,15 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
             ret[2] = str_to_button_id(arg[2].as_str());
             ret[3] = str_to_function_id(arg[3].as_str());
             // Todo implement keycodes
-            let mut keycode  = arg[4].parse::<u8>();
+            let mut keycode  = device.key_codes.get(&arg[4]);
             match(keycode){
-                Ok(keycode)=>{
-                    ret[4] = keycode;
+                Some(keycode)=>{
+                    ret[4] = *keycode;
                 },
                 _=>{
-                    ret[4] = 0;
-                    return ret;
+                    println!("The index needs to be one of the ones defined in key.code");
+                    ret[0] = 255;
+                    return garbage();
                 }
             }
  
@@ -185,7 +194,7 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
                 _=>{
                     println!("The macro id needs to be 8 bits");
                     ret[0] = 255;
-                    return ret;
+                    return garbage();
                 }
             }
         },
@@ -200,7 +209,7 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
                 _=>{
                     println!("The macro id needs to be 8 bits");
                     ret[0] = 255;
-                    return ret;
+                    return garbage();
                 }
             }
             let mut index  = arg[3].parse::<u8>();
@@ -211,20 +220,20 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
                 _=>{
                     println!("The index needs to be 8 bits");
                     ret[0] = 255;
-                    return ret;
+                    return garbage();
                 }
             }
             ret[4] = str_to_function_id(arg[4].as_str());
             // Todo implement keycodes
-            let mut keycode  = arg[5].parse::<u8>();
+            let keycode  = device.key_codes.get(&arg[5]);
             match(keycode){
-                Ok(keycode)=>{
-                    ret[5] = keycode;
+                Some(keycode)=>{
+                    ret[5] = *keycode;
                 },
                 _=>{
                     println!("The index needs to be 8 bits");
                     ret[0] = 255;
-                    return ret;
+                    return garbage();
                 }
             }
 
@@ -241,7 +250,7 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
                 _=>{
                     println!("The macro id needs to be 8 bits");
                     ret[0] = 255;
-                    return ret;
+                    return garbage();
                 }
             }
             let mut index  = arg[3].parse::<u8>();
@@ -252,7 +261,7 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
                 _=>{
                     println!("The index needs to be 8 bits");
                     ret[0] = 255;
-                    return ret;
+                    return garbage();
                 }
             }
             let mut delay  = arg[4].parse::<u32>();
@@ -266,7 +275,7 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
                 _=>{
                     println!("The delay needs to be 8 bits");
                     ret[0] = 255;
-                    return ret;
+                    return garbage();
                 }
             }
             
@@ -282,7 +291,7 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
                 _=>{
                     println!("The macro id needs to be 8 bits");
                     ret[0] = 255;
-                    return ret;
+                    return garbage();
                 }
             }
             let mut index  = arg[3].parse::<u8>();
@@ -292,8 +301,7 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
                 },
                 _=>{
                     println!("The index needs to be 8 bits");
-                    ret[0] = 255;
-                    return ret;
+                    return garbage();
                 }
             }
             let mut delay  = arg[4].parse::<u32>();
@@ -319,14 +327,40 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
 
 
 }
+
+pub fn garbage()->[u8;8]{
+    [255,0,0,0,0,0,0,0]
+}
 pub fn handle_dpi_api(arg : [String;8])->[u8;8]{
-    let mut Dpi  = arg[1].parse::<u16>();
-    match(Dpi){
-        Ok(dpi)=>{
-            [2,(dpi>>8) as u8,dpi as u8,0,0,0,0,0]
+    let sub_system  = &arg[1];
+    match(sub_system.as_str()){
+        "--dpi"=>{
+            
+            let mut dpi  = arg[2].parse::<u16>();
+            match dpi{
+                Ok(dpi)=>{
+                    [2,0,(dpi>>8) as u8,dpi as u8,0,0,0,0]
+                }
+                _=>{
+                    garbage()
+                }
+            }
         },
+        "--scroll-direction"=>{
+            match arg[2].as_str(){
+                "normal"=>{
+                    [2,1,1,0,0,0,0,0]
+                },
+                "inverted"=>{
+                    [2,1,u8::MAX,0,0,0,0,0]
+                }
+                _=>{
+                    garbage()
+                }
+            }
+        }
         _=>{
-            [255,0,0,0,0,0,0,0]
+            garbage()
         }
     }
 }
@@ -336,13 +370,46 @@ pub fn handle_rgb_api(arg : [String;8])->[u8;8]{
 }
 
 
-
 pub struct Device{
     pub hid_device : DEVICE,
-    pub api : HidApi
+    pub api : HidApi,
+    key_codes :HashMap<String,u8>
 }
+pub fn load_key_codes() -> HashMap<String,u8>{
+    let mut path = std::env::current_dir().unwrap();//Path::new("");
+    path = std::env::current_dir().unwrap().join("./key.code");
+    let contents = fs::read_to_string(path)
+        .expect("Something went wrong reading the file");
+    let lines = contents.split('\n');
 
+    let mut map = HashMap::new();
+    for line in lines{
+        let mut data : (String,u8) = (String::new(),0);
+        let mut strs = line.split(' ');
+        let mut itter = 0;
+        for str in strs{
+            if itter == 0{
+                data.0 = String::from(str);
+            }
+            else if itter == 1{
+                let mut value = str.parse::<u8>();
+                match value{
+                    Ok(value) =>{
+                        data.1 = value;
+                    }
+                    _=>{
+                        data.1 = 0;
+                    }
+                }
+            }
+            itter+=1;
+        }
+        map.insert(data.0, data.1);
+    }
+    map
+}
 impl Device{
+    
     pub fn new(target : DEVICE)-> Device{
         let mut api :HidApi = HidApi::new().unwrap();
 
@@ -362,11 +429,12 @@ impl Device{
                 break;
             }
         }
-
+        let dict = load_key_codes();
+        
         Device{
             hid_device : target,
             api : api,
-            
+            key_codes : dict
         }
     }
     pub fn write_data(&mut self, data : DATA)
