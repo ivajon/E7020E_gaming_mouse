@@ -2,6 +2,9 @@
 The awesome gaming mouse project, the one mouse to rule them all. The schematics
 are available [here](schematics_and_pcb). The firmware for the mouse is written in rust using [rtic](https://rtic.rs/) and is found [here](code/e7020e_rtic) the rtic app is in the example [rtic_simple_mouse](code/e7020e_rtic/examples/rtic_simple_mouse.rs). The program used to configure the mouse is found [here](code/hosted/rust_version).
 
+## How to flash the mouse
+To flash the mouse read [this](e7020e-project/code/e7020_rtic/README.md) to get the build dependecies. When the dependencis are in place it can be built, flashed and run with `cargo run --example rtic_simple_mouse --release`. Note! it can't be built in debug mode since this will create to big of a binary and will not fit on the flash of a stm32f401re.
+
 ## Members
 
 - Erik Serrander
