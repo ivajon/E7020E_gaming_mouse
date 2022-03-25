@@ -315,11 +315,10 @@ mod app {
      ******************************/
 
 
-    #[task(binds=EXTI15_10,priority = 2, local = [middle, phase_b, motion, ts], shared = [mouse, macro_conf])]
+    #[task(binds=EXTI15_10,priority = 2, local = [middle, motion, ts], shared = [mouse, macro_conf])]
     fn middle_hand(mut cx: middle_hand::Context) {
         // this should be automatic
         cx.local.middle.clear_interrupt_pending_bit();
-        cx.local.phase_b.clear_interrupt_pending_bit();
         if cx.local.middle.is_low() {
             rprintln!("middle low");
             cx.shared.macro_conf.lock(|conf| {
@@ -380,19 +379,19 @@ mod app {
             });
         }
     }
-    #[task(binds=EXTI2, local = [phase_a], shared = [mouse])]
-    fn phase_a_hand(mut cx: phase_a_hand::Context) {
+    #[task(binds=EXTI2, local = [phase_a, phase_b], shared = [mouse])]
+    fn phase_hand(mut cx: phase_hand::Context) {
         //this should be automatic
-        //cx.local.phase_a.clear_interrupt_pending_bit();
+        cx.local.phase_a.clear_interrupt_pending_bit();
 
-        //if cx.local.phase_a.is_high() {
-        //    rprintln!("phase_a high");
-        //    //cx.shared.mouse.lock(|mouse| {
-        //    //        mouse.handle_scroll('a');
-        //    //});
-        //} else {
-        //    rprintln!("phase_b low");
-        //}
+        if cx.local.phase_a.is_high() {
+            rprintln!("phase_a high");
+            //cx.shared.mouse.lock(|mouse| {
+            //        mouse.handle_scroll('a');
+            //});
+        } else {
+            rprintln!("phase_b low");
+        }
     }
         
     #[task(binds=EXTI9_5, local = [front], shared = [mouse, macro_conf, EXTI])]
