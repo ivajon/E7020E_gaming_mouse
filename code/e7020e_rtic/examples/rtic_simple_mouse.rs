@@ -198,8 +198,8 @@ mod app {
         // setup macro system
         let mut macro_conf = MacroConfig::new();
         macro_conf.update_config(
-            MacroType::MacroSingle(Function::Nothing),
             MacroType::MacroSingle(Function::LeftClick),
+            MacroType::MacroSingle(Function::RightClick),
             MacroType::MacroSingle(Function::PressKeyboard(4)),
             MacroType::MacroSingle(Function::ScrollUp),
             MacroType::MacroSingle(Function::ScrollDown),
