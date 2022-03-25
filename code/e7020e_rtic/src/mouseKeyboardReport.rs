@@ -25,9 +25,9 @@ pub struct MouseKeyboardState {
     x: i8,
     y: i8,
     wheel: i8,
-    left_button: bool,
-    right_button: bool,
-    middle_button: bool,
+    pub left_button: bool,
+    pub right_button: bool,
+    pub middle_button: bool,
     // keybord part
     keycode: [u8; 6],
     /// Sensor variable, holds sensor API
@@ -76,13 +76,14 @@ impl MouseKeyboardState {
     pub fn handle_scroll(&mut self, phase: char) {
         if self.last_phase == ' ' {
             self.last_phase = phase;
-        } else if self.last_phase == phase {
-            self.scroll_direction *= -1;
-        } 
-        if(self.scroll_direction == 1) {
-            self.wheel_up();
-        } else if(self.scroll_direction == -1) {
-            self.wheel_down();
+        } else {
+            if self.last_phase == 'a'{
+                self.wheel_down();
+            }
+            else {
+                self.wheel_up();
+            }
+            self.last_phase = ' ';
         }
     }
     pub fn wheel_up(&mut self) {

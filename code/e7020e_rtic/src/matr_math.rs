@@ -3,12 +3,15 @@
 
 
 /// Defines a 3 element matrix
+#[derive(Copy, Clone)]
 pub struct vec_3 {
     pub data : [f32;3],
 }
 /// Defines a 3x3 matrix
+#[derive(Copy, Clone)]
 pub struct matr_3 {
-    data : [vec_3;3]
+    data : [vec_3;3],
+    pub enabled : bool
 }
 
 pub fn remap(val :u8)->f32{
@@ -58,16 +61,17 @@ impl vec_3{
 
 impl matr_3{
     /// initiates a new a new 3x3 matrix
-    pub fn new(data : [[f32;3];3])->matr_3{
+    pub fn new(data : [[f32;3];3],enabled : bool)->matr_3{
         matr_3 { 
-            data: [vec_3::new(data[0]),vec_3::new(data[1]),vec_3::new(data[2])]
+            data: [vec_3::new(data[0]),vec_3::new(data[1]),vec_3::new(data[2])],
+            enabled : enabled
         }
     }
 
     /// multiplies 2 matricies
     /// standard ugly multiplication
     pub fn mul(&mut self,other : matr_3)->matr_3{
-        let mut ret : matr_3 = matr_3::new([[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0]]);
+        let mut ret : matr_3 = matr_3::new([[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0]],self.enabled);
         for i in 0..3{
             for j in 0..3{
                 for k in 0..3{
