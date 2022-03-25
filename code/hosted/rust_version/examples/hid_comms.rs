@@ -4,6 +4,7 @@ use std::io;
 use std::env;
 use std::fs;
 use std::path::Path;
+use std::fmt;
 
 
 fn handle_text(arg : [String;8])->[u8;8]{
@@ -42,14 +43,11 @@ fn read_std_in()->[String;8]{
     
     str_splitter(buffer)
 }
-fn config_loader(device :&mut Device){
+fn config_loader(device :&mut Device,file_name : &mut String){
             let mut path = std::env::current_dir().unwrap();//Path::new("");
-            println!("Opening path : {:?}",path.display());
-            path = std::env::current_dir().unwrap().join("./mouse-config.cfg");
-            println!("Opening path : {:?}",path.display());
+            path = std::env::current_dir().unwrap().join(format!("./{}.cfg",file_name));
             let contents = fs::read_to_string(path)
                 .expect("Something went wrong reading the file");
-            println!("With text:\n{}", contents);
             let lines = contents.split('\n');
             match device.api.open(device.hid_device.0,device.hid_device.1){
                 Ok(hid)=>{
@@ -57,7 +55,7 @@ fn config_loader(device :&mut Device){
                         if !line.contains("//"){
                             let args = str_splitter(String::from(line));
                             let mut data_write = handle_text(args);
-                            println!("Writing data {:?}",data_write);
+                            //println!("Writing data {:?}",data_write);
                             hid.write(&data_write);
 
                         }
@@ -74,7 +72,7 @@ fn main() {
     loop{
         let mut args = read_std_in();
         if args[0].as_str() == "load-file"{
-            config_loader(&mut device);
+            config_loader(&mut device,&mut args[1]);
         }
         else{
             let mut data_write = handle_text(args);

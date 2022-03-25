@@ -296,10 +296,13 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
                     return ret;
                 }
             }
-            let mut delay  = arg[4].parse::<u8>();
+            let mut delay  = arg[4].parse::<u32>();
             match(delay){
                 Ok(delay)=>{
-                    ret[4] = delay;
+                    ret[4] = (delay>>24)as u8 ;
+                    ret[5] = (delay>>16) as u8;
+                    ret[6] = (delay>>8) as u8;
+                    ret[7] = (delay) as u8;
                 },
                 _=>{
                     ret[4] = 0;
@@ -368,7 +371,7 @@ impl Device{
     }
     pub fn write_data(&mut self, data : DATA)
     {
-        println!("Writing data {:?}",data);
+        //println!("Writing data {:?}",data);
         match self.api.open(self.hid_device.0,self.hid_device.1)
         {
             Ok(device)=>{
@@ -379,7 +382,7 @@ impl Device{
     }
     pub fn repeated_write(&mut self,device:HidDevice, data : DATA)
     {
-        println!("Writing data {:?}",data);
+        //println!("Writing data {:?}",data);
         
         device.write(&data);              
     }
