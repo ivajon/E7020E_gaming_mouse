@@ -379,17 +379,19 @@ mod app {
             });
         }
     }
-    #[task(binds=EXTI2, local = [phase_a, phase_b], shared = [mouse])]
+    #[task(binds=EXTI2, local = [phase_a, phase_b, af: bool = false, bf: bool = false], shared = [mouse])]
     fn phase_hand(mut cx: phase_hand::Context) {
         //this should be automatic
         cx.local.phase_a.clear_interrupt_pending_bit();
+        cx.local.phase_b.clear_interrupt_pending_bit();
 
-        if cx.local.phase_a.is_high() {
+        if cx.local.phase_a.is_high() && *cx.local.af {
             rprintln!("phase_a high");
-            //cx.shared.mouse.lock(|mouse| {
-            //        mouse.handle_scroll('a');
-            //});
-        } else {
+        } else if cx.local.phase_a.is_low() && !*cx.local.af {
+            rprintln!("phase_a low");
+        } else if cx.local.phase_b.is_high() && *cx.local.bf {
+            rprintln!("phase_b high");
+        } else if cx.local.phase_a.is_low() && !*cx.local.bf {
             rprintln!("phase_b low");
         }
     }
