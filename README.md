@@ -1,5 +1,6 @@
 # Awesome gaming mouse
-The awesome gaming mouse project, the one mouse to rule them all.
+The awesome gaming mouse project, the one mouse to rule them all. The schematics
+are available [here](schematics_and_pcb). The firmware for the mouse is written in rust using [rtic](https://rtic.rs/) and is found [here](code/e7020e_rtic) the rtic app is in the example [rtic_simple_mouse](code/e7020e_rtic/examples/rtic_simple_mouse).
 
 ## Members
 
