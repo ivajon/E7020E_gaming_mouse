@@ -13,19 +13,19 @@
 ## High level specification
 
 ### Basic
-- Left and right click
-- relative position
+- [x] Left and right click
+- [x] relative position
 
 ### Higher
-- scroll wheel
-- macro system
-- Side buttons
+- [x] scroll wheel
+- [x] macro system
+- [x] Side buttons
 
 ### Stretch
-- Computer communication
-- LEDs, i.e. debug/ui
-- Rumble motor
-- Perfect spray
+- [x] Computer communication
+- [ ] LEDs, i.e. debug/ui
+- [ ] Rumble motor
+- [ ] Perfect spray
 
 
 ### Implementation
