@@ -9,16 +9,16 @@ use stm32f4xx_hal::{
     spi::{Spi, TransferModeNormal},
     timer::Delay,
 };
-use stm32f4::stm32f401::{SPI1, TIM5};
+use stm32f4::stm32f401::{SPI2, TIM5};
 
 
 // Define needed types
 
-type SCK = Pin<Alternate<PushPull, 5_u8>, 'A', 5_u8>;
-type MOSI = Pin<Alternate<PushPull, 5_u8>, 'A', 7_u8>;
-type MISO = Pin<Alternate<PushPull, 5_u8>, 'A', 6_u8>;
-type CS = Pin<Output<PushPull>, 'B', 5_u8>;
-type SPI = Spi<SPI1, (SCK, MISO, MOSI), TransferModeNormal>;
+type SCK = Pin<Alternate<PushPull, 5_u8>, 'B', 13_u8>;
+type MOSI = Pin<Alternate<PushPull, 5_u8>, 'B', 15_u8>;
+type MISO = Pin<Alternate<PushPull, 5_u8>, 'B', 14_u8>;
+type CS = Pin<Output<PushPull>, 'B', 6_u8>;
+type SPI = Spi<SPI2, (SCK, MISO, MOSI), TransferModeNormal>;
 type DELAY = Delay<TIM5, 1000000_u32>;
 pub struct MouseKeyboardState {
     // mouse part

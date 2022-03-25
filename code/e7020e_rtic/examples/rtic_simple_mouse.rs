@@ -57,7 +57,7 @@ mod app {
     
     // Includes for the spi interface
     use embedded_hal::spi::MODE_3;
-    use stm32f4::stm32f401::{SPI1, TIM5};
+    use stm32f4::stm32f401::{SPI2, TIM5};
 
 
     // Default core clock at 16MHz
@@ -70,11 +70,11 @@ mod app {
     type Button = ErasedPin<Input<PullDown>>;
     type Scroll = ErasedPin<Input<PullUp>>;
     // Types for spi interface
-    type SCK = Pin<Alternate<PushPull, 5_u8>, 'A', 5_u8>;
-    type MOSI = Pin<Alternate<PushPull, 5_u8>, 'A', 7_u8>;
-    type MISO = Pin<Alternate<PushPull, 5_u8>, 'A', 6_u8>;
-    type CS = Pin<Output<PushPull>, 'B', 5_u8>;
-    type SPI = Spi<SPI1, (SCK, MISO, MOSI), TransferModeNormal>;
+    type SCK = Pin<Alternate<PushPull, 5_u8>, 'B', 13_u8>;
+    type MOSI = Pin<Alternate<PushPull, 5_u8>, 'B', 15_u8>;
+    type MISO = Pin<Alternate<PushPull, 5_u8>, 'B', 14_u8>;
+    type CS = Pin<Output<PushPull>, 'B', 6_u8>;
+    type SPI = Spi<SPI2, (SCK, MISO, MOSI), TransferModeNormal>;
     // Types for pmw3389 device driver
     type DELAY = Delay<TIM5, 1000000_u32>;
     type PMW3389 = Pmw3389<SPI, CS, DELAY>;
@@ -139,19 +139,19 @@ mod app {
         };
 
         // Configure pmw3389 sensor
-        let sck         : SCK       = gpioa.pa5.into_alternate().set_speed(Speed::VeryHigh);
-        let miso        : MISO      = gpioa.pa6.into_alternate().set_speed(Speed::High);
-        let mosi        : MOSI      = gpioa.pa7.into_alternate().set_speed(Speed::High);
-        let cs          : CS        = gpiob.pb5.into_push_pull_output().set_speed(Speed::High);
-        let spi         : SPI       = Spi::new(dp.SPI1, (sck, miso, mosi), MODE_3, 1.MHz(), &clocks);
+        let sck         : SCK       = gpiob.pb13.into_alternate().set_speed(Speed::VeryHigh);
+        let miso        : MISO      = gpiob.pb14.into_alternate().set_speed(Speed::High);
+        let mosi        : MOSI      = gpiob.pb15.into_alternate().set_speed(Speed::High);
+        let cs          : CS        = gpiob.pb6.into_push_pull_output().set_speed(Speed::High);
+        let spi         : SPI       = Spi::new(dp.SPI2, (sck, miso, mosi), MODE_3, 1.MHz(), &clocks);
         let delay       : DELAY     = dp.TIM5.delay_us(&clocks);
         let mut pmw3389 : PMW3389   = Pmw3389::new(spi, cs, delay).unwrap();
         // Write the cpi regs on startup
         pmw3389.store_cpi().ok();
         // Defines a i2c interface
-        let scl         : SCL       = gpioa.pa8.into_alternate_open_drain();
-        let sda         : SDA       = gpioc.pc9.into_alternate_open_drain();
-        let mut i2c     : I2C       = I2c::new(dp.I2C3, (scl,sda), Mode::from(1.MHz()), &clocks); 
+        let mut scl         : SCL       = gpioa.pa8.into_alternate_open_drain();
+        let mut sda         : SDA       = gpioc.pc9.into_alternate_open_drain();
+        let mut i2c     : I2C       = I2c::new(dp.I2C3, (scl,sda), Mode::from(100.kHz()), &clocks); 
         
         
         let mut interfaces = standard_interfaces();
@@ -169,7 +169,7 @@ mod app {
         let mut scroll_info = scrollInfo{a,b};
 
         // Configure IO pins
-        let mut motion:Button = gpiob.pb13.into_pull_down_input().erase();
+        let mut motion:Button = gpiob.pb4.into_pull_down_input().erase();
         let mut phase_a:Scroll = gpiob.pb2.into_pull_up_input().erase();
         let mut phase_b:Scroll = gpioa.pa2.into_pull_up_input().erase();
         let mut left:Button = gpiob.pb0.into_pull_down_input().erase();
