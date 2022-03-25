@@ -448,6 +448,7 @@ impl Device{
             _=>{}
         }         
     }
+    /// Ment for burst writes, device needs to be opend first
     pub fn repeated_write(&mut self,device:HidDevice, data : DATA)
     {
         //println!("Writing data {:?}",data);
