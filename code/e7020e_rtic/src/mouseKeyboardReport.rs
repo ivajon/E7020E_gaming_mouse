@@ -17,7 +17,7 @@ use stm32f4::stm32f401::{SPI1, TIM5};
 type SCK = Pin<Alternate<PushPull, 5_u8>, 'A', 5_u8>;
 type MOSI = Pin<Alternate<PushPull, 5_u8>, 'A', 7_u8>;
 type MISO = Pin<Alternate<PushPull, 5_u8>, 'A', 6_u8>;
-type CS = Pin<Output<PushPull>, 'A', 4_u8>;
+type CS = Pin<Output<PushPull>, 'B', 5_u8>;
 type SPI = Spi<SPI1, (SCK, MISO, MOSI), TransferModeNormal>;
 type DELAY = Delay<TIM5, 1000000_u32>;
 pub struct MouseKeyboardState {
@@ -32,7 +32,7 @@ pub struct MouseKeyboardState {
     keycode: [u8; 6],
     /// Sensor variable, holds sensor API
     sensor:Pmw3389<SPI,CS,DELAY>,
-    last_phase:char,
+    pub last_phase:char,
     scroll_direction:i8
 }
 

@@ -15,7 +15,6 @@ use panic_rtt_target as _;
 #[rtic::app(device = stm32f4::stm32f401, dispatchers = [DMA1_STREAM0,DMA1_STREAM1])]
 mod app {
     // Relative app imports
-    use app::color::*;
     use app::pmw3389::Pmw3389;
     use app::mouseReport::MouseState;
     use app::pca9624_pw::*;
@@ -69,7 +68,7 @@ mod app {
     type SCK = Pin<Alternate<PushPull, 5_u8>, 'A', 5_u8>;
     type MOSI = Pin<Alternate<PushPull, 5_u8>, 'A', 7_u8>;
     type MISO = Pin<Alternate<PushPull, 5_u8>, 'A', 6_u8>;
-    type CS = Pin<Output<PushPull>, 'A', 4_u8>;
+    type CS = Pin<Output<PushPull>, 'B', 5_u8>;
     type SPI = Spi<SPI1, (SCK, MISO, MOSI), TransferModeNormal>;
     // Types for pmw3389 device driver
     type DELAY = Delay<TIM5, 1000000_u32>;
@@ -81,13 +80,11 @@ mod app {
     
     type SERIAL_BUSS<'a> = usbd_serial::SerialPort<'a,UsbBus<USB> > ;
     
-    const VALID_ADDR_RANGE: core::ops::Range<u8>  = 0x08..0x7F;
     #[shared]
     struct Shared {
         mouse: MouseKeyboardState,
         macro_conf: MacroConfig,
         EXTI : EXTI,
-        rgb_pattern_driver : RgbController
     }
     
     #[local]
@@ -103,10 +100,11 @@ mod app {
         phase_b : Scroll,
         motion : Button,
         ts : u32,
+        rgb_pattern_driver : RgbController
     }
 
     const POLL_INTERVAL_MS: u8 = 1;
-    #[no_mangle]
+
     #[init(local = [EP_MEMORY: [u32; 1024] = [0; 1024], bus: Option<UsbBusAllocator<UsbBus<USB>>> = None])]
     fn init(cx: init::Context) -> (Shared, Local, init::Monotonics) {
         rtt_init_print!();
@@ -140,7 +138,7 @@ mod app {
         let sck         : SCK       = gpioa.pa5.into_alternate().set_speed(Speed::VeryHigh);
         let miso        : MISO      = gpioa.pa6.into_alternate().set_speed(Speed::High);
         let mosi        : MOSI      = gpioa.pa7.into_alternate().set_speed(Speed::High);
-        let cs          : CS        = gpioa.pa4.into_push_pull_output().set_speed(Speed::High);
+        let cs          : CS        = gpiob.pb5.into_push_pull_output().set_speed(Speed::High);
         let spi         : SPI       = Spi::new(dp.SPI1, (sck, miso, mosi), MODE_3, 1.MHz(), &clocks);
         let delay       : DELAY     = dp.TIM5.delay_us(&clocks);
         let mut pmw3389 : PMW3389   = Pmw3389::new(spi, cs, delay).unwrap();
@@ -150,20 +148,18 @@ mod app {
         let scl         : SCL       = gpioa.pa8.into_alternate_open_drain();
         let sda         : SDA       = gpioc.pc9.into_alternate_open_drain();
         let mut i2c     : I2C       = I2c::new(dp.I2C3, (scl,sda), Mode::from(1.MHz()), &clocks); 
-        rprintln!("writing i2c stuff");
-        //i2c.write(0xc0,&mut[0]).unwrap();
-        //rprintln!("After write");
-
+        
+        
         let mut interfaces = standard_interfaces();
         let mut rgb_controller:PCA9624PW = PCA9624PW::new(i2c,interfaces,0x15); // Might be 0xC2
         //rprintln!("rgb controller id {:?}",rgb_controller.whoami());
         // Initiates the pattern controller
         rprintln!("before who am i");
         //rprintln!("rgb controller id {:?}",rgb_controller.whoami());
+        // Initiates the pattern controller
         let mut rgb_pattern_driver = RgbController::new(rgb_controller);
-        let mut pattern : Pattern = Pattern::simple_fade(1,0,10);
-        //rgb_pattern_driver.add_pattern(pattern);
-        //pattern_itterator::spawn();
+
+
 
         // Configure IO pins
         let mut motion:Button = gpiob.pb13.into_pull_down_input().erase();
@@ -192,7 +188,7 @@ mod app {
         enable_interrupt(&mut back,&mut dp.EXTI,Edge::RisingFalling,&mut sys_cfg);
         
         cx.local.bus.replace(UsbBus::new(usb, cx.local.EP_MEMORY));
-        // Configu0x80re usb class
+        // Configure usb class
         let hid = HIDClass::new(
             cx.local.bus.as_ref().unwrap(),
             MouseKeyboard::desc(),
@@ -244,6 +240,7 @@ mod app {
                 phase_b,
                 motion,
                 ts,
+                rgb_pattern_driver
             },
             init::Monotonics(mono)
         )
@@ -256,14 +253,10 @@ mod app {
     }
 
     /// defines a simple pattern loop this should be started at startup when there is some form of pre saved pattern
-    #[task(shared = [rgb_pattern_driver])]
-    fn pattern_itterator(mut cx :  pattern_itterator::Context){
-        cx.shared.rgb_pattern_driver.lock(|pattern_driver|{
-            let mut step = pattern_driver.next_color();
-            // Print the current color to debugger
-            rprintln!("Color : {:?}",step.0.1.to_hex());
-            pattern_itterator::spawn_after((step.1 as u32).millis()).ok();
-        });
+    #[task(local = [rgb_pattern_driver])]
+    fn pattern_itterator(cx : pattern_itterator::Context){
+        let mut step = cx.local.rgb_pattern_driver.next_color();
+        //pattern_itterator::spawn_after(dwt_systick_monotonic::fugit::Duration(step as u32));
     }
 
 
@@ -353,9 +346,6 @@ mod app {
     #[task(binds=EXTI0, priority = 2, local = [left], shared = [mouse, macro_conf])]
     fn left_hand(mut cx: left_hand::Context) {
         // this should be automatic
-        let mut phase_b_state = cx.local.phase_b.is_high();
-        let mut phase_a_state = cx.local.phase_a.is_high();
-        let mut left_state = cx.local.left.is_high();
         cx.local.left.clear_interrupt_pending_bit();
         rprintln!("left_hand");
 
@@ -536,9 +526,6 @@ mod app {
         match buffer[0]{
             0x01 => {
                 rprintln!("RGB _controll");
-                cx.shared.rgb_pattern_driver.lock(|rgb|{
-                    rgb.handle_api(buffer);
-                });
             },
             0x02 => {
                 rprintln!("DPI _controll");
