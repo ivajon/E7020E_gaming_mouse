@@ -153,7 +153,7 @@ fn print_macro_help(){
 /// 9 Nothing
 /// 
 pub fn handle_macro_api(arg : [String;8])->[u8;8]{
-    let mut ret : [u8;8] = [0x04,0,0,0,0,0,0,0];
+    let mut ret : [u8;8] = [0x03,0,0,0,0,0,0,0];
     match arg[1].as_str(){
         "--button-to-single-function"=>{
             // do change things

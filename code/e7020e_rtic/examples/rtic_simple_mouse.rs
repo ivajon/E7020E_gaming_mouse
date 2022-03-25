@@ -399,15 +399,6 @@ mod app {
     #[task(binds=EXTI9_5, local = [front], shared = [mouse, macro_conf, EXTI])]
     fn front_hand(mut cx: front_hand::Context) {
         cx.local.front.clear_interrupt_pending_bit();
-        //cx.local.phase_b.clear_interrupt_pending_bit();
-        //if cx.local.phase_b.is_high() {
-        //    rprintln!("phase_b low");
-        //    cx.shared.mouse.lock(|mouse| {
-        //        mouse.handle_scroll('b');
-        //    });
-        //} 
-        //else
-        //{
             if cx.local.front.is_low() {
                 rprintln!("front low");
                 cx.shared.macro_conf.lock(|conf| {
@@ -423,15 +414,6 @@ mod app {
                     });
                 });
             }
-            // Temporarelly disable interrupts
-            //cx.shared.EXTI.lock(|EXTI|{
-            //    cx.local.front.disable_interrupt(EXTI);
-            //});
-            //delay(160000);
-            //cx.shared.EXTI.lock(|EXTI|{
-            //    cx.local.front.enable_interrupt(EXTI);
-            //});
-        //}
     }
     #[no_mangle]
     fn delay(td:u32){
@@ -443,14 +425,6 @@ mod app {
     fn back_hand(mut cx: back_hand::Context) {
         // this should be automatic
         cx.local.back.clear_interrupt_pending_bit();
-        // Temporarelly disable interrupts
-        //cx.shared.EXTI.lock(|EXTI|{
-        //    cx.local.back.disable_interrupt(EXTI);
-        //});
-        //delay(160000);
-        //cx.shared.EXTI.lock(|EXTI|{
-        //    cx.local.back.enable_interrupt(EXTI);
-        //});
         if cx.local.back.is_low() {
             rprintln!("back low");
             cx.shared.macro_conf.lock(|conf| {
@@ -529,9 +503,6 @@ mod app {
                 handle_dpi::spawn(dpi).unwrap();
             },
             0x03 => {
-                rprintln!("DPI _controll");
-            },
-            0x04 => {
                 rprintln!("Macro _controll");
                 cx.shared.macro_conf.lock(|conf| {
                     conf.handle_binary_config(&buffer);
