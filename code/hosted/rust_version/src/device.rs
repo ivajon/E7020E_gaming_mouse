@@ -73,8 +73,8 @@ pub fn str_to_button_id(str : &str) -> u8{
         "--button-middle" => ret = 2,
         "--scroll-up" => ret = 3,
         "--scroll-down" => ret = 4,
-        "--button-front" => ret = 6,
-        "--button-back" => ret = 7,
+        "--button-front" => ret = 5,
+        "--button-back" => ret = 6,
         _ => {}
     } 
     ret
@@ -86,7 +86,7 @@ fn print_macro_help(){
         Possible commands are :
             --button-to-single-function <button_id> <function_id> <key_code>
             --button-to-multiple-macros <button_id> <macro_nr>
-            --change-function-in-macro  <macro_nr>  <index>       <function_id> <keycode>
+            --change-function-in-macro  <macro_nr>  <index>       <function_id> <keycode ( u8 )>
             --change-delay-in-macro     <macro_nr>  <index>       <data ( u8 )>
             --change-time-in-macro      <macro_nr>  <index>       <data ( u8 )>
         ------------------------------------------------------------------------------------
@@ -153,13 +153,24 @@ fn print_macro_help(){
 /// 9 Nothing
 /// 
 pub fn handle_macro_api(arg : [String;8])->[u8;8]{
-    let mut ret : [u8;8] = [0x03,0,0,0,0,0,0,0];
+    let mut ret : [u8;8] = [0x04,0,0,0,0,0,0,0];
     match arg[1].as_str(){
         "--button-to-single-function"=>{
             // do change things
             ret[1] = 0;
             ret[2] = str_to_button_id(arg[2].as_str());
             ret[3] = str_to_function_id(arg[3].as_str());
+            // Todo implement keycodes
+            let mut keycode  = arg[4].parse::<u8>();
+            match(keycode){
+                Ok(keycode)=>{
+                    ret[4] = keycode;
+                },
+                _=>{
+                    ret[4] = 0;
+                    return ret;
+                }
+            }
  
         },
         "--button-to-multiple-macros"=>{
@@ -205,7 +216,17 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
             }
             ret[4] = str_to_function_id(arg[4].as_str());
             // Todo implement keycodes
-
+            let mut keycode  = arg[5].parse::<u8>();
+            match(keycode){
+                Ok(keycode)=>{
+                    ret[5] = keycode;
+                },
+                _=>{
+                    println!("The index needs to be 8 bits");
+                    ret[0] = 255;
+                    return ret;
+                }
+            }
 
             
         },
@@ -234,13 +255,16 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
                     return ret;
                 }
             }
-            let mut delay  = arg[4].parse::<u8>();
+            let mut delay  = arg[4].parse::<u32>();
             match(delay){
                 Ok(delay)=>{
-                    ret[4] = delay;
+                    ret[4] = (delay>>24)as u8 ;
+                    ret[5] = (delay>>16) as u8;
+                    ret[6] = (delay>>8) as u8;
+                    ret[7] = (delay) as u8;
                 },
                 _=>{
-                    println!("The index needs to be 8 bits");
+                    println!("The delay needs to be 8 bits");
                     ret[0] = 255;
                     return ret;
                 }
@@ -278,8 +302,7 @@ pub fn handle_macro_api(arg : [String;8])->[u8;8]{
                     ret[4] = delay;
                 },
                 _=>{
-                    println!("The index needs to be 8 bits");
-                    ret[0] = 255;
+                    ret[4] = 0;
                     return ret;
                 }
             }

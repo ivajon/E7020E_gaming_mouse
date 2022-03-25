@@ -54,9 +54,13 @@ fn config_loader(device :&mut Device){
             match device.api.open(device.hid_device.0,device.hid_device.1){
                 Ok(hid)=>{
                     for line in lines{
-                        let args = str_splitter(String::from(line));
-                        let mut data_write = handle_text(args);
-                        hid.write(&data_write);
+                        if !line.contains("//"){
+                            let args = str_splitter(String::from(line));
+                            let mut data_write = handle_text(args);
+                            println!("Writing data {:?}",data_write);
+                            hid.write(&data_write);
+
+                        }
                         
                     }
                 },
