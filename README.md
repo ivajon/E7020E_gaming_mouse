@@ -101,3 +101,23 @@ The stl files can be found in our [model folder](model/).
     - DPI configuration
     - Perfect spray
       - This might not be applicable. 
+
+
+## contributions
+
+- Erik Serrander
+  - Hardware design (werry minor)
+  - Macro system
+  - Macro system config mouse side
+  - Mouse state software (major)
+
+- Ivar Jönsson
+  - Hardware design (allmost all)
+  - Macro system config pc side
+  - Mouse state software (minor)
+  - Enclosure manufacturing
+
+- Togheter / both
+  - Init code
+  - Interuppt handlers
+  - Harware assembly
