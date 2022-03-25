@@ -163,8 +163,8 @@ mod app {
 
         // Configure IO pins
         let mut motion:Button = gpiob.pb13.into_pull_down_input().erase();
-        let mut phase_a:Scroll = gpioa.pa2.into_pull_up_input().erase();
-        let mut phase_b:Scroll = gpioc.pc10.into_pull_up_input().erase();
+        let mut phase_a:Scroll = gpiob.pb2.into_pull_up_input().erase();
+        let mut phase_b:Scroll = gpioa.pa2.into_pull_up_input().erase();
         let mut left:Button = gpiob.pb0.into_pull_down_input().erase();
         let mut right:Button = gpiob.pb1.into_pull_down_input().erase();
         let mut middle:Button = gpiob.pb12.into_pull_down_input().erase();
@@ -320,27 +320,21 @@ mod app {
         // this should be automatic
         cx.local.middle.clear_interrupt_pending_bit();
         cx.local.phase_b.clear_interrupt_pending_bit();
-        //if cx.local.middle.is_low() {
-        //    rprintln!("middle low");
-        //    cx.shared.macro_conf.lock(|conf| {
-        //        cx.shared.mouse.lock(|mouse| {
-        //            handle_macro(conf, conf.middle_button, mouse, false);
-        //        });
-        //    });
-        //} else {
-        //    rprintln!("middle high");
-        //    cx.shared.macro_conf.lock(|conf| {
-        //        cx.shared.mouse.lock(|mouse| {
-        //            handle_macro(conf, conf.middle_button, mouse, true);
-        //        });
-        //    });
-        //}
-        /*} else */if cx.local.phase_b.is_high() {
-            rprintln!("phase_b high")
+        if cx.local.middle.is_low() {
+            rprintln!("middle low");
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.middle_button, mouse, false);
+                });
+            });
         } else {
-            rprintln!("phase_b low")
+            rprintln!("middle high");
+            cx.shared.macro_conf.lock(|conf| {
+                cx.shared.mouse.lock(|mouse| {
+                    handle_macro(conf, conf.middle_button, mouse, true);
+                });
+            });
         }
-        
     }
     
     #[task(binds=EXTI0, priority = 2, local = [left], shared = [mouse, macro_conf])]
