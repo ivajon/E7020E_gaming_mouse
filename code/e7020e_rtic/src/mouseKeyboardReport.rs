@@ -32,8 +32,8 @@ pub struct MouseKeyboardState {
     keycode: [u8; 6],
     /// Sensor variable, holds sensor API
     sensor:Pmw3389<SPI,CS,DELAY>,
-    pub last_phase:char,
-    scroll_direction:i8
+    scroll_scaler : i8
+
 }
 
 impl MouseKeyboardState {
@@ -47,11 +47,27 @@ impl MouseKeyboardState {
             middle_button: false,
             keycode: [0, 0, 0, 0, 0, 0],
             sensor : sensor,
-            last_phase:' ',
-            scroll_direction : 0,
+            scroll_scaler : 1,
         }
     }
-
+    pub fn handle_api(&mut self,args : [u8;8]){
+        match args[1]{
+            0x00 => {
+                // Dpi control
+                let dpi = (args[2] as u16) << 8 | args[3] as u16;
+                self.write_dpi(dpi);
+            }
+            0x01 => {
+                // scroll_speed
+                rprintln!("Setting scroll scaler to : {:}",args[2]);
+                self.scroll_scaler = args[2] as i8;
+                rprintln!("Setting scroll scaler to : {:}",self.scroll_scaler);
+            }
+            _ =>{
+                rprintln!("Invalid api call");
+            }
+        }
+    }
     pub fn add_x_movement(&mut self, to_add: i8) {
         let result = self.x + to_add;
         if result > i8::MAX {
@@ -73,32 +89,21 @@ impl MouseKeyboardState {
             self.y = result
         }
     }
-    pub fn handle_scroll(&mut self, phase: char) {
-        if self.last_phase == ' ' {
-            self.last_phase = phase;
-        } else {
-            if self.last_phase == 'a'{
-                self.wheel_down();
-            }
-            else {
-                self.wheel_up();
-            }
-            self.last_phase = ' ';
-        }
-    }
-    pub fn wheel_up(&mut self) {
+    pub fn scroll_up(&mut self) {
+        rprint!("scaler : {:}",self.scroll_scaler);
         match self.wheel {
             i8::MAX => (),
             i8::MIN => (),
-            _ => self.wheel += 1
+            _ => self.wheel += self.scroll_scaler
         }
     }
 
-    pub fn wheel_down(&mut self) {
+    pub fn scroll_down(&mut self) {
+        rprint!("scaler : {:}",self.scroll_scaler);
         match self.wheel {
             i8::MAX => (),
             i8::MIN => (),
-            _ => self.wheel -= 1
+            _ => self.wheel -= self.scroll_scaler
         }
     }
 

@@ -11,17 +11,22 @@
 #![no_std]
 
 use panic_rtt_target as _;
+
+pub struct scrollInfo{
+    a : bool,
+    b : bool
+}
 //type Button = ErasedPin<Input<PullUp>>;
 #[rtic::app(device = stm32f4::stm32f401, dispatchers = [DMA1_STREAM0,DMA1_STREAM1])]
 mod app {
     // Relative app imports
     use app::pmw3389::Pmw3389;
-    use app::mouseReport::MouseState;
     use app::pca9624_pw::*;
     use app::hidDescriptors::MouseKeyboard;
-    use app::mouseKeyboardReport::MouseKeyboardState;
+    use app::mouseKeyboardReport::*;
     use app::macroSystem::*;
     use app::rgb_pattern_things::*;
+    use crate::scrollInfo;
     // Absolute imports
     use eeprom::EEPROM;
     use stm32f4::stm32f401::*;
@@ -77,9 +82,7 @@ mod app {
     type SCL = Pin<Alternate<OpenDrain, 4_u8>, 'A', 8_u8>;
     type SDA = Pin<Alternate<OpenDrain, 4_u8>, 'C', 9_u8>;
     type I2C = I2c<I2C3, (SCL, SDA)>;
-    
     type SERIAL_BUSS<'a> = usbd_serial::SerialPort<'a,UsbBus<USB> > ;
-    
     #[shared]
     struct Shared {
         mouse: MouseKeyboardState,
@@ -100,7 +103,8 @@ mod app {
         phase_b : Scroll,
         motion : Button,
         ts : u32,
-        rgb_pattern_driver : RgbController
+        rgb_pattern_driver : RgbController,
+        scroll_info : scrollInfo
     }
 
     const POLL_INTERVAL_MS: u8 = 1;
@@ -159,7 +163,10 @@ mod app {
         // Initiates the pattern controller
         let mut rgb_pattern_driver = RgbController::new(rgb_controller);
 
-
+        // Configure scroll state
+        let mut a = false;
+        let mut b = false;
+        let mut scroll_info = scrollInfo{a,b};
 
         // Configure IO pins
         let mut motion:Button = gpiob.pb13.into_pull_down_input().erase();
@@ -240,7 +247,8 @@ mod app {
                 phase_b,
                 motion,
                 ts,
-                rgb_pattern_driver
+                rgb_pattern_driver,
+                scroll_info
             },
             init::Monotonics(mono)
         )
@@ -264,10 +272,22 @@ mod app {
      * Macro system functions *
      **************************/
 
-    #[task(shared = [mouse], priority = 1, capacity = 100)]
+    #[task(shared = [mouse], priority = 1, capacity = 50)]
     fn end_macro(mut cx: end_macro::Context, f: Function) {
         cx.shared.mouse.lock(|mouse| {
             end_function(f, mouse);
+        });
+    }
+
+    #[task(shared = [mouse, macro_conf], priority = 1, capacity = 50)]
+    fn end_delay_scroll(mut cx: end_delay_scroll::Context, dir: bool) {
+        cx.shared.mouse.lock(|mouse| {
+            cx.shared.macro_conf.lock(|conf| {
+                match dir {
+                    true => handle_macro(conf, conf.scroll_down, mouse, false),
+                    false => handle_macro(conf, conf.scroll_up, mouse, false),
+                } 
+            });
         });
     }
 
@@ -379,20 +399,27 @@ mod app {
             });
         }
     }
-    #[task(binds=EXTI2, local = [phase_a, phase_b, af: bool = false, bf: bool = false], shared = [mouse])]
+    #[task(binds=EXTI2, local = [phase_a, phase_b, scroll_info], shared = [mouse,macro_conf])]
     fn phase_hand(mut cx: phase_hand::Context) {
         //this should be automatic
         cx.local.phase_a.clear_interrupt_pending_bit();
         cx.local.phase_b.clear_interrupt_pending_bit();
+        let a_state = cx.local.phase_a.is_high();
+        let b_state = cx.local.phase_b.is_high();
+        if a_state != cx.local.scroll_info.a{
+            cx.shared.mouse.lock(|mouse|{
+                cx.shared.macro_conf.lock(|conf|{
+                    if b_state != a_state{
+                        handle_macro(conf,conf.scroll_up,mouse,true);
+                        end_delay_scroll::spawn_after(10.millis(), false);
+                    }
+                    else{
+                        handle_macro(conf,conf.scroll_down,mouse,true);
+                        end_delay_scroll::spawn_after(10.millis(), true);
+                    }
 
-        if cx.local.phase_a.is_high() && *cx.local.af {
-            rprintln!("phase_a high");
-        } else if cx.local.phase_a.is_low() && !*cx.local.af {
-            rprintln!("phase_a low");
-        } else if cx.local.phase_b.is_high() && *cx.local.bf {
-            rprintln!("phase_b high");
-        } else if cx.local.phase_a.is_low() && !*cx.local.bf {
-            rprintln!("phase_b low");
+                });
+            });
         }
     }
         
@@ -487,7 +514,7 @@ mod app {
         }
         
     }
-    #[task(shared = [macro_conf])]
+    #[task(shared = [macro_conf,mouse])]
     fn handle_host_call(mut cx :handle_host_call::Context,buffer : [u8; 8]) {
         rprintln!("handle host call");
         rprintln!("{:?}", buffer);
@@ -497,17 +524,18 @@ mod app {
                 rprintln!("RGB _controll");
             },
             0x02 => {
-                rprintln!("DPI _controll");
+                rprintln!("MOUSE _controll");
                 // In this case the next 2 bytes are the new dpi
-                let dpi = (buffer[1] as u16) << 8 | buffer[2] as u16;
-                handle_dpi::spawn(dpi).unwrap();
+                cx.shared.mouse.lock(|mouse| {
+                    mouse.handle_api(buffer);
+                });
             },
             0x03 => {
                 rprintln!("Macro _controll");
                 cx.shared.macro_conf.lock(|conf| {
                     conf.handle_binary_config(&buffer);
                 });
-            },
+            }
             _ => {
                 rprintln!("unknown");
             }
@@ -517,9 +545,6 @@ mod app {
     #[task(shared = [mouse])]
     fn handle_dpi(mut cx : handle_dpi::Context,dpi : u16){
         rprintln!("{:}",dpi);
-        cx.shared.mouse.lock(|mouse| {
-            mouse.write_dpi(dpi);
-        });
     }
     #[idle(shared = [mouse])]
     fn idle(mut cx: idle::Context) -> ! {

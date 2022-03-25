@@ -239,10 +239,10 @@ pub fn do_function(f: Function, mouse: &mut MouseKeyboardState) {
             mouse.push_middle();
         },
         Function::ScrollUp => {
-            mouse.wheel_up();
+            mouse.scroll_up();
         },
         Function::ScrollDown => {
-            mouse.wheel_down();
+            mouse.scroll_down();
         },
         Function::PressKeyboard(key) => {
             mouse.push_keybord_key(key);
