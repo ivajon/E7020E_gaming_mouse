@@ -1,4 +1,5 @@
 # Awesome gaming mouse
+The awesome gaming mouse project, the one mouse to rule them all.
 
 ## Members
 
