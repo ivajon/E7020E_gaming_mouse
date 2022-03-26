@@ -141,11 +141,17 @@ pub struct PCA9624PW{
 // Define a driver
 impl PCA9624PW {
     pub fn new(i2c : I2C, interfaces : [interface;2],address : u8) -> PCA9624PW {
-        PCA9624PW{
+        let mut dev = PCA9624PW{
             i2c : i2c,
             interfaces : interfaces,
             address : address
-        }
+        };
+
+        let mode2 = dev.read_register(register_map::MODE2);
+        let new = (1 << 3) | mode2;
+        dev.write_register(register_map::MODE2, new);
+
+        dev
     }
     // reads who am i reg, not sure if this is correct
     pub fn whoami(&mut self) -> u8 {
