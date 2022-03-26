@@ -1,10 +1,7 @@
-# HID-HOST
+# Host program
 
-Experiment to read HID data.
+This program is used to configure the mouse.
 
-## Arch Linux
-
-Seems to be no additional required libraries to install.
 
 ## Udev rules (linux)
 
@@ -16,29 +13,15 @@ Seems to be no additional required libraries to install.
 
 Shamelessly borrowed from https://github.com/signal11/hidapi/blob/master/udev/99-hid.rules.
 
-## Experiment 1
+## How to run and build
 
-- Apply the udev rules to allow HID access from user space.
-- Start the target (Iris) application (cargo run --example rtt-hid)
-  - currently it enumerates values and sends them over HID to the host
-- Start the host application (cargo run), it will
-  - list available HID devices
-  - open the Iris device (based on VID:HID) and
-    - receive a buffer of 4 bytes
-    - parse as a u32
-    - print buffer and u32 value
+Build and run by typing `cargo run --example hid_comms --release` in a terminal.
+To get help with what commands are available type `help` in the program.
 
-## Notice
+## Config files
 
-Since this crate is located inside of the `e7020e_rtic` crate, it will look at the top level `cargo.config` where we declare the `[build]` target default (to some embedded target).
-
-However, this is a host side application (not running on the arm target), so we override this by explicitly setting the `[build]` target, in the local `.cargo/config.toml`. In this case it is a linux target. This needs to be changed if running under OSX or Windows. 
-
-```shell
-[build]
-target = "x86_64-unknown-linux-gnu"    
-```
+A config file is basically a text file with the desired commands in it one command on each row and `//` is used for comments. A couple of examples are available se [hello_world.cfg](hello_world.cfg) and [usefull.cfg](usefull.cfg). To load a configuration from file type `load-file` followed by the file name without the trailing `.cfg`.
 
 ## Disclaimer
 
-The code has only been tested to work under linux. It should however be possible to compile/run under OSX/Windows as well, but you will need to setup `hidapi` for the platform at hand.
+The code has only been tested to work under linux.
